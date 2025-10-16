@@ -1,19 +1,17 @@
-// backend/src/routes/topicRoutes.js
 import express from 'express';
-import { 
-  getTopicById,
-  updateTopic,
-  deleteTopic
-} from '../controllers/topicController.js';
+import { getTopicById, updateTopic, deleteTopic } from '../controllers/topicController.js';
 import { protect } from '../middleware/authMiddleware.js';
+import multer from 'multer';
+
+// Configure multer for file uploads
+const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
 
-// These routes are for a single topic, so they can be at the top level
-// e.g., PUT /api/topics/some-topic-id
 router.route('/:topicId')
   .get(protect, getTopicById)
-  .put(protect, updateTopic)
+  // Use multer middleware for the PUT request. 'image' is the field name.
+  .put(protect, upload.single('image'), updateTopic)
   .delete(protect, deleteTopic);
 
 export default router;

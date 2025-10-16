@@ -1,4 +1,3 @@
-// frontend/src/api/topicApi.js
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5001/api';
@@ -16,8 +15,13 @@ export const createTopicForSubject = async (subjectId, topicData) => {
 };
 
 // PUT /api/topics/:topicId
-export const updateTopic = async (topicId, topicData) => {
-  const response = await axios.put(`${API_BASE_URL}/topics/${topicId}`, topicData);
+// This now accepts FormData
+export const updateTopic = async (topicId, formData) => {
+  const response = await axios.put(`${API_BASE_URL}/topics/${topicId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 

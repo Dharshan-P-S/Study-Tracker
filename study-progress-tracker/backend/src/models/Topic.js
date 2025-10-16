@@ -21,6 +21,9 @@ const topicSchema = new mongoose.Schema({
     type: String, 
     default: '' 
   },
+  imageUrl: { 
+    type: String 
+  },
   status: {
     type: String,
     enum: ['To Study', 'Partially Studied', 'Fully Studied', 'To Be Revised'],

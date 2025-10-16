@@ -1,8 +1,51 @@
-// backend/src/controllers/topicController.js
 import Topic from '../models/Topic.js';
 import Subject from '../models/Subject.js';
+import dotenv from 'dotenv';
+dotenv.config();
+import { v2 as cloudinary } from 'cloudinary';
 
-// @desc    Create a topic for a subject
+// Configure Cloudinary at the top
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+
+// @desc    Update a topic (e.g., change its status, content, or upload an image)
+// @route   PUT /api/topics/:topicId
+export const updateTopic = async (req, res) => {
+  try {
+    const { title, text, status, revisionDate } = req.body;
+    const topic = await Topic.findOne({ _id: req.params.topicId, userId: req.user._id });
+
+    if (!topic) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+    
+    // Handle file upload if a file exists
+    if (req.file) {
+      // Upload to Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'study-app-topics',
+        resource_type: 'image',
+      });
+      topic.imageUrl = result.secure_url;
+    }
+    
+    topic.title = title || topic.title;
+    topic.text = text !== undefined ? text : topic.text;
+    topic.status = status || topic.status;
+    topic.revisionDate = revisionDate || topic.revisionDate;
+
+    const updatedTopic = await topic.save();
+    res.json(updatedTopic);
+
+  } catch (error) {
+    console.error("Error updating topic:", error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
 // @route   POST /api/subjects/:subjectId/topics
 export const createTopicForSubject = async (req, res) => {
   try {
@@ -58,28 +101,6 @@ export const getTopicById = async (req, res) => {
   }
 };
 
-// @desc    Update a topic (e.g., change its status or content)
-// @route   PUT /api/topics/:topicId
-export const updateTopic = async (req, res) => {
-  try {
-    const { title, text, status, revisionDate } = req.body;
-    const topic = await Topic.findOne({ _id: req.params.topicId, userId: req.user._id });
-
-    if (topic) {
-      topic.title = title || topic.title;
-      topic.text = text !== undefined ? text : topic.text;
-      topic.status = status || topic.status;
-      topic.revisionDate = revisionDate || topic.revisionDate;
-
-      const updatedTopic = await topic.save();
-      res.json(updatedTopic);
-    } else {
-      res.status(404).json({ message: 'Topic not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error' });
-  }
-};
 
 // @desc    Delete a topic
 // @route   DELETE /api/topics/:topicId
