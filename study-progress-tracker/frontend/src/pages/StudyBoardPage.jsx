@@ -2,8 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getTopicsForSubject, createTopicForSubject, updateTopicStatus } from '../api/topicApi';
 import { logStudySession } from '../api/sessionApi';
+import { getImagesForSubject } from '../api/imageApi';
 import Timer from '../components/Timer';
 import TopicEditorModal from '../components/TopicEditorModal';
+import ImageUploadModal from '../components/ImageUploadModal';
+import ImageViewerModal from '../components/ImageViewerModal';
 import { DndContext, useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -26,7 +29,7 @@ const EditIcon = () => (
   </svg>
 );
 
-// --- TopicCard: draggable, edit button hidden if any modal is open ---
+// --- TopicCard ---
 const TopicCard = ({ topic, onEditClick, isDragging, isOverlay, isAnyEditing }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: topic._id });
 
@@ -43,7 +46,7 @@ const TopicCard = ({ topic, onEditClick, isDragging, isOverlay, isAnyEditing }) 
       style={style}
       {...listeners}
       {...attributes}
-      className={`relative p-4 rounded-lg transition-all ${isOverlay ? 'shadow-2xl scale-[1.02]' : 'shadow-sm hover:shadow-md'} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700`}
+      className={`relative p-4 rounded-lg transition-all shadow-sm hover:shadow-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700`}
     >
       <div className="flex justify-between items-start gap-2">
         <div className="flex-1 pr-10">
@@ -70,6 +73,24 @@ const TopicCard = ({ topic, onEditClick, isDragging, isOverlay, isAnyEditing }) 
   );
 };
 
+// --- ImageCard ---
+const ImageCard = ({ image, onClick }) => {
+  const statusColors = {
+    'To Study': 'border-blue-500',
+    'Partially Studied': 'border-yellow-500',
+    'Fully Studied': 'border-green-500',
+    'To Be Revised': 'border-red-500',
+  };
+  return (
+    <div onClick={onClick} className={`w-48 flex-shrink-0 border-t-4 ${statusColors[image.status]} rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-slate-800`}>
+      <img src={image.imageUrl} alt={image.description} className="w-full h-32 object-cover rounded-t-sm" />
+      <div className="p-2">
+        <p className="text-sm text-slate-600 dark:text-slate-300 truncate">{image.description || 'No description'}</p>
+      </div>
+    </div>
+  );
+};
+
 // --- Column ---
 const Column = ({ id, title, topics, onTopicClick, activeId, isAnyEditing }) => {
   const { setNodeRef } = useDroppable({ id });
@@ -91,7 +112,7 @@ const Column = ({ id, title, topics, onTopicClick, activeId, isAnyEditing }) => 
               topic={topic}
               onEditClick={() => onTopicClick(topic)}
               isDragging={activeId === topic._id}
-              isAnyEditing={isAnyEditing} // Pass the modal state
+              isAnyEditing={isAnyEditing}
             />
           ))
         ) : (
@@ -106,24 +127,24 @@ const Column = ({ id, title, topics, onTopicClick, activeId, isAnyEditing }) => 
 const StudyBoardPage = () => {
   const { subjectId } = useParams();
   const [topics, setTopics] = useState([]);
+  const [images, setImages] = useState([]);
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
   const [editingTopic, setEditingTopic] = useState(null);
   const [activeId, setActiveId] = useState(null);
 
   const activeTopic = useMemo(() => topics.find(topic => topic._id === activeId), [activeId, topics]);
 
-  const fetchTopics = async () => {
-    try {
-      const data = await getTopicsForSubject(subjectId);
-      setTopics(data);
-    } catch (error) {
-      console.error('Failed to fetch topics', error);
-    }
+  const fetchAllData = () => {
+    getTopicsForSubject(subjectId).then(setTopics).catch(console.error);
+    getImagesForSubject(subjectId).then(setImages).catch(console.error);
   };
 
   useEffect(() => {
-    fetchTopics();
+    fetchAllData();
   }, [subjectId]);
 
   const columns = useMemo(() => ({
@@ -188,17 +209,20 @@ const StudyBoardPage = () => {
     setIsModalOpen(false);
   };
 
-  const handleTopicUpdate = () => {
-    fetchTopics();
+  const openImageViewer = (image) => {
+    setViewingImage(image);
+    setIsViewerOpen(true);
+  };
+
+  const closeImageViewer = () => {
+    setViewingImage(null);
+    setIsViewerOpen(false);
   };
 
   return (
     <DndContext
       onDragStart={(event) => setActiveId(event.active.id)}
-      onDragEnd={(event) => {
-        handleDragEnd(event);
-        setActiveId(null);
-      }}
+      onDragEnd={(event) => { handleDragEnd(event); setActiveId(null); }}
       onDragCancel={() => setActiveId(null)}
     >
       <div className="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
@@ -212,6 +236,25 @@ const StudyBoardPage = () => {
           <div className="w-full sm:w-auto"><Timer onSessionComplete={handleSessionComplete} /></div>
         </header>
 
+        {/* Image Library */}
+        <section className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Image Library</h2>
+            <button onClick={() => setIsUploadModalOpen(true)} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-semibold shadow flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" /></svg>
+              Add Image
+            </button>
+          </div>
+          <div className="flex gap-4 p-4 bg-slate-100 dark:bg-slate-800/50 rounded-lg overflow-x-auto min-h-[10rem]">
+            {images.length > 0 ? (
+              images.map(img => <ImageCard key={img._id} image={img} onClick={() => openImageViewer(img)} />)
+            ) : (
+              <div className="flex items-center justify-center w-full"><p className="text-slate-500">No images uploaded for this subject yet.</p></div>
+            )}
+          </div>
+        </section>
+
+        {/* Topics */}
         <main>
           <form onSubmit={handleAddTopic} className="mb-8 flex gap-3">
             <input
@@ -231,25 +274,15 @@ const StudyBoardPage = () => {
 
           <div className="flex flex-col md:flex-row gap-6">
             {Object.entries(columns).map(([status, topicsInColumn]) => (
-              <Column
-                key={status}
-                id={status}
-                title={status}
-                topics={topicsInColumn}
-                onTopicClick={openModal}
-                activeId={activeId}
-                isAnyEditing={isModalOpen} // hide all edit buttons if modal is open
-              />
+              <Column key={status} id={status} title={status} topics={topicsInColumn} onTopicClick={openModal} activeId={activeId} isAnyEditing={isModalOpen} />
             ))}
           </div>
 
-          <TopicEditorModal
-            isOpen={isModalOpen}
-            onRequestClose={closeModal}
-            topic={editingTopic}
-            onTopicUpdate={handleTopicUpdate}
-          />
+          <TopicEditorModal isOpen={isModalOpen} onRequestClose={closeModal} topic={editingTopic} onTopicUpdate={fetchAllData} />
         </main>
+
+        <ImageUploadModal isOpen={isUploadModalOpen} onRequestClose={() => setIsUploadModalOpen(false)} subjectId={subjectId} onUploadComplete={fetchAllData} />
+        <ImageViewerModal isOpen={isViewerOpen} onRequestClose={closeImageViewer} image={viewingImage} onUpdate={fetchAllData} />
       </div>
 
       <DragOverlay dropAnimation={null}>
