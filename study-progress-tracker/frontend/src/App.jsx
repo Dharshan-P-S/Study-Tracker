@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // Make sure useEffect is imported
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
@@ -7,13 +7,36 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SubjectsPage from './pages/SubjectsPage';
 import StudyBoardPage from './pages/StudyBoardPage';
-import ProtectedRoute from './components/ProtectedRoute';
 import AnalyticsPage from './pages/AnalyticsPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
-  const { user, loading } = useAuth(); // 👈 Get the new loading state
+  const { user, loading } = useAuth();
 
-  // 👇 If it's still loading, show a simple loading message
+  // 👇 This is the updated, more robust theme detection logic
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const handleChange = (e) => {
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+
+    // Set the initial theme
+    handleChange(mediaQuery);
+
+    // Listen for changes
+    mediaQuery.addEventListener('change', handleChange);
+
+    // Cleanup listener on component unmount
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">

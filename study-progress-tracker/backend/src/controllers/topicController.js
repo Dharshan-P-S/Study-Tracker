@@ -11,21 +11,31 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// In backend/src/controllers/topicController.js
 
-// @desc    Update a topic (e.g., change its status, content, or upload an image)
-// @route   PUT /api/topics/:topicId
 export const updateTopic = async (req, res) => {
   try {
-    const { title, text, status, revisionDate } = req.body;
+    const { title, text, status, revisionDate, removeImage } = req.body;
     const topic = await Topic.findOne({ _id: req.params.topicId, userId: req.user._id });
 
     if (!topic) {
       return res.status(404).json({ message: 'Topic not found' });
     }
     
-    // Handle file upload if a file exists
-    if (req.file) {
-      // Upload to Cloudinary
+    // Handle file deletion from Cloudinary FIRST
+    if (removeImage === 'true' && topic.imageUrl) {
+      const publicId = topic.imageUrl.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`study-app-topics/${publicId}`);
+      topic.imageUrl = undefined; // Use undefined to have Mongoose remove the field
+    } 
+    // Handle NEW file upload
+    else if (req.file) {
+      // If there's an old image, delete it before uploading the new one
+      if (topic.imageUrl) {
+        const publicId = topic.imageUrl.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`study-app-topics/${publicId}`);
+      }
+      
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: 'study-app-topics',
         resource_type: 'image',
@@ -33,6 +43,7 @@ export const updateTopic = async (req, res) => {
       topic.imageUrl = result.secure_url;
     }
     
+    // Update other fields
     topic.title = title || topic.title;
     topic.text = text !== undefined ? text : topic.text;
     topic.status = status || topic.status;
@@ -46,6 +57,7 @@ export const updateTopic = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
 // @route   POST /api/subjects/:subjectId/topics
 export const createTopicForSubject = async (req, res) => {
   try {
@@ -117,4 +129,21 @@ export const deleteTopic = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
+};
+
+export const updateTopicStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const topic = await Topic.findOne({ _id: req.params.topicId, userId: req.user._id });
+
+    if (topic) {
+      topic.status = status;
+      await topic.save();
+      res.json({ message: 'Status updated' });
+    } else {
+      res.status(404).json({ message: 'Topic not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
 };

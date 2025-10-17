@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // <-- This line is the fix
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getSubjects, createSubject } from '../api/subjectsApi';
+
+// A new component for the "empty state"
+const EmptyState = () => (
+  <div className="text-center py-16 px-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">No subjects found</h3>
+    <p className="text-slate-500 dark:text-slate-400 mt-2">Get started by adding your first subject above!</p>
+  </div>
+);
 
 const SubjectsPage = () => {
   const [subjects, setSubjects] = useState([]);
@@ -48,53 +56,69 @@ const SubjectsPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
+    // Main container with constrained width and more padding
+    <div className="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+      
+      {/* Page Header */}
+      <header className="flex justify-between items-center pb-4 mb-6 border-b border-slate-200 dark:border-slate-700">
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
           Welcome, {user?.name}!
         </h1>
-        <Link to="/analytics" className="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 mr-4">
-          View Analytics
-        </Link>
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-        >
-          Logout
-        </button>
-      </div>
-
-      <h2 className="text-2xl font-semibold mb-4">My Subjects</h2>
-      <form onSubmit={handleSubmit} className="mb-6 flex gap-2">
-        <input
-          type="text"
-          value={newSubjectName}
-          onChange={(e) => setNewSubjectName(e.target.value)}
-          placeholder="Enter new subject name"
-          className="flex-grow p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition"
-        >
-          Add Subject
-        </button>
-      </form>
-
-      {isLoading && <p>Loading subjects...</p>}
-      {error && <p className="text-red-500">{error}</p>}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {subjects.map((subject) => (
-          <Link
-            to={`/subjects/${subject._id}`}
-            key={subject._id}
-            className="block p-4 bg-white border rounded-lg shadow hover:shadow-md transition-shadow"
-          >
-            <h2 className="text-xl font-semibold">{subject.name}</h2>
+        <div className="flex items-center gap-4">
+          <Link to="/analytics" className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm font-semibold shadow">
+            View Analytics
           </Link>
-        ))}
-      </div>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm font-semibold shadow"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
+      
+      <main>
+        {/* Section Header */}
+        <div className="flex justify-between items-center mb-4">
+            <h2 className="text-3xl font-bold tracking-tight">My Subjects</h2>
+        </div>
+
+        {/* Add Subject Form */}
+        <form onSubmit={handleSubmit} className="mb-8 flex gap-3">
+          <input
+            type="text"
+            value={newSubjectName}
+            onChange={(e) => setNewSubjectName(e.target.value)}
+            placeholder="Enter new subject name"
+            className="flex-grow p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-5 py-3 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-semibold shadow"
+          >
+            Add Subject
+          </button>
+        </form>
+
+        {/* Subjects Grid or Empty State */}
+        {isLoading && <p>Loading subjects...</p>}
+        {error && <p className="text-red-500">{error}</p>}
+        {!isLoading && subjects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {subjects.map((subject) => (
+              <Link
+                to={`/subjects/${subject._id}`}
+                key={subject._id}
+                className="block p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow hover:shadow-lg hover:-translate-y-1 transition-all"
+              >
+                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">{subject.name}</h3>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          !isLoading && <EmptyState />
+        )}
+      </main>
     </div>
   );
 };

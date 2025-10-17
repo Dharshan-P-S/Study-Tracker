@@ -1,4 +1,14 @@
-/* frontend/src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    /* 🌞 Light Mode */
+    @apply bg-slate-50 text-slate-800;
+    /* 🌚 Dark Mode */
+    @apply dark:bg-slate-900 dark:text-slate-100;
+    
+    @apply transition-colors duration-300;
+  }
+}

@@ -1,58 +1,128 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getTopicsForSubject, updateTopic, createTopicForSubject } from '../api/topicApi';
+import { getTopicsForSubject, createTopicForSubject, updateTopicStatus } from '../api/topicApi';
 import { logStudySession } from '../api/sessionApi';
 import Timer from '../components/Timer';
 import TopicEditorModal from '../components/TopicEditorModal';
-import { DndContext, closestCenter } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DndContext, useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
-const TopicCard = ({ topic, onClick }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: topic._id });
+// --- Icon Components ---
+const NoteIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const ImageIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
+
+const EditIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L15.232 5.232z" />
+  </svg>
+);
+
+// --- TopicCard: draggable, edit button hidden if any modal is open ---
+const TopicCard = ({ topic, onEditClick, isDragging, isOverlay, isAnyEditing }) => {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: topic._id });
+
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging || isOverlay ? 0 : 1, // hide original card when dragging
+    cursor: 'grab',
+    transition: isOverlay ? 'none' : 'box-shadow 150ms ease, transform 150ms ease',
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={onClick} className="p-3 bg-white border rounded-lg shadow-sm cursor-grab hover:shadow-md">
-      <h4 className="font-semibold">{topic.title}</h4>
-      {topic.imageUrl && <img src={topic.imageUrl} alt={topic.title} className="mt-2 w-full h-24 object-cover rounded" />}
-    </div>
-  );
-};
-
-const Column = ({ id, title, topics, onTopicClick }) => {
-  const { setNodeRef } = useSortable({ id });
-  return (
-    <div className="bg-gray-100 p-4 rounded-lg flex-1">
-      <h3 className="font-bold mb-4 text-lg">{title}</h3>
-      <SortableContext id={id} items={topics} strategy={verticalListSortingStrategy}>
-        <div ref={setNodeRef} className="space-y-3 min-h-[100px]">
-          {topics.map(topic => <TopicCard key={topic._id} topic={topic} onClick={() => onTopicClick(topic)} />)}
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`relative p-4 rounded-lg transition-all ${isOverlay ? 'shadow-2xl scale-[1.02]' : 'shadow-sm hover:shadow-md'} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700`}
+    >
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 pr-10">
+          <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">{topic.title}</h4>
+          <div className="flex items-center gap-2">
+            {topic.text && <NoteIcon />}
+            {topic.imageUrl && <ImageIcon />}
+          </div>
         </div>
-      </SortableContext>
+      </div>
+
+      {!isAnyEditing && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onEditClick(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="absolute -right-3 top-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md z-10"
+          aria-label="Edit topic"
+        >
+          <EditIcon />
+        </button>
+      )}
     </div>
   );
 };
 
+// --- Column ---
+const Column = ({ id, title, topics, onTopicClick, activeId, isAnyEditing }) => {
+  const { setNodeRef } = useDroppable({ id });
+  const statusColors = {
+    'To Study': 'border-blue-500',
+    'Partially Studied': 'border-yellow-500',
+    'Fully Studied': 'border-green-500',
+    'To Be Revised': 'border-red-500',
+  };
+
+  return (
+    <div className={`bg-slate-100 dark:bg-slate-800/50 rounded-lg flex-1 border-t-4 ${statusColors[id]}`}>
+      <h3 className="font-bold p-4 text-lg text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700">{title}</h3>
+      <div ref={setNodeRef} className="p-4 space-y-3 min-h-[200px]">
+        {topics.length > 0 ? (
+          topics.map(topic => (
+            <TopicCard
+              key={topic._id}
+              topic={topic}
+              onEditClick={() => onTopicClick(topic)}
+              isDragging={activeId === topic._id}
+              isAnyEditing={isAnyEditing} // Pass the modal state
+            />
+          ))
+        ) : (
+          <div className="flex items-center justify-center h-full text-center text-sm text-slate-500 dark:text-slate-400 py-4">Drop topics here.</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- Main Page ---
 const StudyBoardPage = () => {
   const { subjectId } = useParams();
   const [topics, setTopics] = useState([]);
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState(null);
+  const [activeId, setActiveId] = useState(null);
+
+  const activeTopic = useMemo(() => topics.find(topic => topic._id === activeId), [activeId, topics]);
+
+  const fetchTopics = async () => {
+    try {
+      const data = await getTopicsForSubject(subjectId);
+      setTopics(data);
+    } catch (error) {
+      console.error('Failed to fetch topics', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchTopics = async () => {
-      try {
-        const data = await getTopicsForSubject(subjectId);
-        setTopics(data);
-      } catch (error) {
-        console.error("Failed to fetch topics", error);
-      }
-    };
     fetchTopics();
   }, [subjectId]);
 
@@ -65,18 +135,24 @@ const StudyBoardPage = () => {
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over) return;
 
-    const originalTopic = topics.find(t => t._id === active.id);
+    const topicId = active.id;
     const newStatus = over.id;
+    const originalTopic = topics.find((t) => t._id === topicId);
 
-    setTopics(prev => prev.map(t => t._id === active.id ? { ...t, status: newStatus } : t));
+    if (originalTopic && originalTopic.status !== newStatus) {
+      const validStatuses = ['To Study', 'Partially Studied', 'Fully Studied', 'To Be Revised'];
+      if (!validStatuses.includes(newStatus)) return;
 
-    try {
-      await updateTopic(active.id, { status: newStatus });
-    } catch (error) {
-      console.error("Failed to update topic status", error);
-      setTopics(prev => prev.map(t => t._id === active.id ? originalTopic : t));
+      setTopics(prev => prev.map(t => (t._id === topicId ? { ...t, status: newStatus } : t)));
+
+      try {
+        await updateTopicStatus(topicId, newStatus);
+      } catch (error) {
+        console.error('Failed to update topic status', error);
+        setTopics(prev => prev.map(t => (t._id === topicId ? originalTopic : t)));
+      }
     }
   };
 
@@ -88,7 +164,7 @@ const StudyBoardPage = () => {
       setTopics(prev => [...prev, newTopic]);
       setNewTopicTitle('');
     } catch (error) {
-      console.error("Failed to add topic", error);
+      console.error('Failed to add topic', error);
     }
   };
 
@@ -97,8 +173,8 @@ const StudyBoardPage = () => {
       await logStudySession({ subjectId, duration });
       alert(`Logged a study session of ${Math.floor(duration / 60)} minutes!`);
     } catch (error) {
-      console.error("Failed to log session", error);
-      alert("Could not save your study session. Please try again.");
+      console.error('Failed to log session', error);
+      alert('Could not save your study session. Please try again.');
     }
   };
 
@@ -112,39 +188,83 @@ const StudyBoardPage = () => {
     setIsModalOpen(false);
   };
 
-  const handleTopicUpdate = (updatedTopic) => {
-    setTopics(topics.map(t => t._id === updatedTopic._id ? updatedTopic : t));
+  const handleTopicUpdate = () => {
+    fetchTopics();
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
-        <Link to="/subjects" className="text-blue-500 hover:underline">&larr; Back to Subjects</Link>
-        <div className="w-auto">
-          <Timer onSessionComplete={handleSessionComplete} />
-        </div>
+    <DndContext
+      onDragStart={(event) => setActiveId(event.active.id)}
+      onDragEnd={(event) => {
+        handleDragEnd(event);
+        setActiveId(null);
+      }}
+      onDragCancel={() => setActiveId(null)}
+    >
+      <div className="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <header className="flex flex-wrap justify-between items-center gap-4 pb-4 mb-6 border-b border-slate-200 dark:border-slate-700">
+          <Link to="/subjects" className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold py-2 px-4 rounded-lg inline-flex items-center gap-2 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+            Back to Subjects
+          </Link>
+          <div className="w-full sm:w-auto"><Timer onSessionComplete={handleSessionComplete} /></div>
+        </header>
+
+        <main>
+          <form onSubmit={handleAddTopic} className="mb-8 flex gap-3">
+            <input
+              type="text"
+              value={newTopicTitle}
+              onChange={(e) => setNewTopicTitle(e.target.value)}
+              placeholder="Add a new topic to 'To Study'..."
+              className="flex-grow p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+            />
+            <button type="submit" className="bg-blue-600 text-white px-5 py-3 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-semibold shadow flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Add Topic
+            </button>
+          </form>
+
+          <div className="flex flex-col md:flex-row gap-6">
+            {Object.entries(columns).map(([status, topicsInColumn]) => (
+              <Column
+                key={status}
+                id={status}
+                title={status}
+                topics={topicsInColumn}
+                onTopicClick={openModal}
+                activeId={activeId}
+                isAnyEditing={isModalOpen} // hide all edit buttons if modal is open
+              />
+            ))}
+          </div>
+
+          <TopicEditorModal
+            isOpen={isModalOpen}
+            onRequestClose={closeModal}
+            topic={editingTopic}
+            onTopicUpdate={handleTopicUpdate}
+          />
+        </main>
       </div>
 
-      <form onSubmit={handleAddTopic} className="mb-6 flex gap-2">
-        <input type="text" value={newTopicTitle} onChange={(e) => setNewTopicTitle(e.target.value)} placeholder="Add a new topic to 'To Study'..." className="flex-grow p-2 border rounded-md" />
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Add Topic</button>
-      </form>
+      <DragOverlay dropAnimation={null}>
+        {activeTopic ? (
+          <div className="p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">{activeTopic.title}</h4>
+            <div className="flex items-center gap-2">
+              {activeTopic.text && <NoteIcon />}
+              {activeTopic.imageUrl && <ImageIcon />}
+            </div>
+          </div>
+        ) : null}
+      </DragOverlay>
 
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="flex flex-col md:flex-row gap-4">
-          {Object.entries(columns).map(([status, topicsInColumn]) => (
-            <Column key={status} id={status} title={status} topics={topicsInColumn} onTopicClick={openModal} />
-          ))}
-        </div>
-      </DndContext>
-
-      <TopicEditorModal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        topic={editingTopic}
-        onTopicUpdate={handleTopicUpdate}
-      />
-    </div>
+    </DndContext>
   );
 };
 

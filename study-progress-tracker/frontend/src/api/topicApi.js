@@ -30,3 +30,8 @@ export const getTopicById = async (topicId) => {
   const response = await axios.get(`${API_BASE_URL}/topics/${topicId}`);
   return response.data;
 };
+
+export const updateTopicStatus = async (topicId, status) => {
+  const response = await axios.patch(`${API_BASE_URL}/topics/${topicId}/status`, { status });
+  return response.data;
+};
