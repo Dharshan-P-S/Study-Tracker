@@ -282,7 +282,7 @@ const StudyBoardPage = () => {
         </main>
 
         <ImageUploadModal isOpen={isUploadModalOpen} onRequestClose={() => setIsUploadModalOpen(false)} subjectId={subjectId} onUploadComplete={fetchAllData} />
-        <ImageViewerModal isOpen={isViewerOpen} onRequestClose={closeImageViewer} image={viewingImage} onUpdate={fetchAllData} />
+        <ImageViewerModal isOpen={isViewerOpen} onRequestClose={closeImageViewer} image={viewingImage} onUpdate={fetchAllData} subjectId={subjectId} />
       </div>
 
       <DragOverlay dropAnimation={null}>
