@@ -63,7 +63,7 @@ const TopicCard = ({ topic, onEditClick, isDragging, isOverlay, isAnyEditing }) 
           onClick={(e) => { e.stopPropagation(); onEditClick(); }}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
-          className="absolute -right-3 top-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md z-10"
+          className="absolute -right-3 top-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md"
           aria-label="Edit topic"
         >
           <EditIcon />
