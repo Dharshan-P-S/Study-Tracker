@@ -4,10 +4,8 @@ import useImage from 'use-image';
 
 const KonvaImage = ({ imageUrl, stageWidth, stageHeight }) => {
   const [image] = useImage(imageUrl, 'anonymous');
-
   if (!image) return null;
 
-  // Fit image inside stage while maintaining aspect ratio
   const scale = Math.min(stageWidth / image.width, stageHeight / image.height);
   const x = (stageWidth - image.width * scale) / 2;
   const y = (stageHeight - image.height * scale) / 2;
@@ -16,57 +14,34 @@ const KonvaImage = ({ imageUrl, stageWidth, stageHeight }) => {
 };
 
 const AnnotationCanvas = ({ imageUrl, initialAnnotations, onAnnotationsChange, selectedColor }) => {
-  // History stores arrays of annotations
-  const [history, setHistory] = useState([initialAnnotations || []]);
-  const [historyStep, setHistoryStep] = useState(0);
-
+  const [annotations, setAnnotations] = useState(initialAnnotations || []);
+  const [history, setHistory] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
   const [newAnnotation, setNewAnnotation] = useState(null);
   const isDrawing = useRef(false);
+  const initialized = useRef(false);
 
-  // Reset history when a new image is loaded
+  // Only set annotations ONCE per image (prevent reset loop)
   useEffect(() => {
-    setHistory([initialAnnotations || []]);
-    setHistoryStep(0);
+    if (!initialized.current) {
+      setAnnotations(initialAnnotations || []);
+      setHistory([]);
+      setRedoStack([]);
+      initialized.current = true;
+    }
   }, [initialAnnotations]);
-
-  // Push a new state to history, removing all redo steps
-  const pushToHistory = (newAnnos) => {
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyStep + 1);
-      newHistory.push(newAnnos);
-      return newHistory;
-    });
-    setHistoryStep(prev => prev + 1);
-    onAnnotationsChange(newAnnos);
-  };
-
-  const handleUndo = () => {
-    if (historyStep > 0) {
-      const prevStep = historyStep - 1;
-      setHistoryStep(prevStep);
-      onAnnotationsChange(history[prevStep]);
-    }
-  };
-
-  const handleRedo = () => {
-    if (historyStep < history.length - 1) {
-      const nextStep = historyStep + 1;
-      setHistoryStep(nextStep);
-      onAnnotationsChange(history[nextStep]);
-    }
-  };
 
   const handleMouseDown = (e) => {
     const stage = e.target.getStage();
-    isDrawing.current = true;
     const pos = stage.getPointerPosition();
+    isDrawing.current = true;
     setNewAnnotation({
       x: pos.x,
       y: pos.y,
       width: 0,
       height: 0,
       fill: selectedColor.fill,
-      id: `anno-${Date.now()}-${Math.random()}`,
+      id: `anno-${Date.now()}-${Math.random()}`
     });
   };
 
@@ -76,7 +51,7 @@ const AnnotationCanvas = ({ imageUrl, initialAnnotations, onAnnotationsChange, s
     setNewAnnotation(prev => ({
       ...prev,
       width: pos.x - prev.x,
-      height: pos.y - prev.y,
+      height: pos.y - prev.y
     }));
   };
 
@@ -85,28 +60,46 @@ const AnnotationCanvas = ({ imageUrl, initialAnnotations, onAnnotationsChange, s
     isDrawing.current = false;
 
     if (Math.abs(newAnnotation.width) > 2 && Math.abs(newAnnotation.height) > 2) {
-      // Push new annotation to history atomically
-      const newAnnos = [...history[historyStep], newAnnotation];
-      pushToHistory(newAnnos);
+      const updated = [...annotations, newAnnotation];
+      setHistory(prev => [...prev, annotations]);
+      setAnnotations(updated);
+      setRedoStack([]);
+      onAnnotationsChange(updated);
     }
 
     setNewAnnotation(null);
   };
 
-  // Annotations to render
-  const allAnnotations = newAnnotation ? [...history[historyStep], newAnnotation] : history[historyStep];
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    const previous = history[history.length - 1];
+    const undone = [...annotations];
+    setRedoStack(prev => [...prev, undone]);
+    setHistory(prev => prev.slice(0, -1));
+    setAnnotations(previous);
+    onAnnotationsChange(previous);
+  };
 
-  // Stage size
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setHistory(prev => [...prev, annotations]);
+    setRedoStack(prev => prev.slice(0, -1));
+    setAnnotations(next);
+    onAnnotationsChange(next);
+  };
+
   const stageWidth = window.innerWidth * 0.6;
   const stageHeight = window.innerHeight * 0.8;
 
-  // Correct Undo/Redo states
-  const canUndo = historyStep > 0 || (historyStep === 0 && history[0].length > 0);
-  const canRedo = historyStep < history.length - 1;
+  const canUndo = history.length > 0;
+  const canRedo = redoStack.length > 0;
+
+  const allAnnotations = newAnnotation ? [...annotations, newAnnotation] : annotations;
 
   return (
     <div className="relative w-full h-full flex flex-col items-center">
-      {/* Centered Undo/Redo buttons */}
+      {/* Undo/Redo buttons */}
       <div className="flex gap-4 mb-2">
         <button
           onClick={handleUndo}
@@ -134,7 +127,7 @@ const AnnotationCanvas = ({ imageUrl, initialAnnotations, onAnnotationsChange, s
       >
         <Layer>
           <KonvaImage imageUrl={imageUrl} stageWidth={stageWidth} stageHeight={stageHeight} />
-          {allAnnotations.map(anno => (
+          {allAnnotations.map((anno) => (
             <Rect
               key={anno.id}
               x={anno.x}
