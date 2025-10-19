@@ -28,9 +28,9 @@ const EditIcon = () => (
   </svg>
 );
 const NotesIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.536a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-    </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.536a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+  </svg>
 );
 
 // --- TopicCard with Edit and Notes buttons ---
@@ -61,8 +61,8 @@ const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, is
       </div>
       {!isAnyEditing && (
         <div className="absolute -right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-            <button onClick={(e) => { e.stopPropagation(); onEditClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit topic"><EditIcon /></button>
-            <button onClick={(e) => { e.stopPropagation(); onNotesClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit notes"><NotesIcon /></button>
+          <button onClick={(e) => { e.stopPropagation(); onEditClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit topic"><EditIcon /></button>
+          <button onClick={(e) => { e.stopPropagation(); onNotesClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit notes"><NotesIcon /></button>
         </div>
       )}
     </div>
@@ -89,7 +89,7 @@ const Column = ({ id, title, topics, onTopicClick, onNotesClick, activeId, isAny
       <h3 className="font-bold p-4 text-lg text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700">{title}</h3>
       <div ref={setNodeRef} className="p-4 space-y-3 min-h-[200px]">
         {topics.length > 0 ? (
-          topics.map(topic => <TopicCard key={topic._id} topic={topic} onEditClick={() => onTopicClick(topic)} onNotesClick={() => onNotesClick(topic)} isDragging={activeId === topic._id} isAnyEditing={isAnyEditing}/>)
+          topics.map(topic => <TopicCard key={topic._id} topic={topic} onEditClick={() => onTopicClick(topic)} onNotesClick={() => onNotesClick(topic)} isDragging={activeId === topic._id} isAnyEditing={isAnyEditing} />)
         ) : (
           <div className="flex items-center justify-center h-full text-center text-sm text-slate-500 dark:text-slate-400 py-4">Drop topics here.</div>
         )}
@@ -112,6 +112,36 @@ const StudyBoardPage = () => {
   const [editingTopic, setEditingTopic] = useState(null);
   const [activeId, setActiveId] = useState(null);
 
+  useEffect(() => {
+    if (topics.length === 0 && images.length === 0) return; // wait until data is loaded
+
+    const stored = localStorage.getItem('openModal');
+    if (!stored) return;
+
+    try {
+      const { type, id } = JSON.parse(stored);
+
+      if (type === 'topic' || type === 'notes') {
+        const topic = topics.find(t => t._id === id);
+        if (topic) {
+          setEditingTopic(topic);
+          if (type === 'topic') setIsModalOpen(true);
+          else setIsNotesModalOpen(true);
+        } else localStorage.removeItem('openModal');
+      } else if (type === 'image') {
+        const image = images.find(img => img._id === id);
+        if (image) {
+          setViewingImage(image);
+          setIsViewerOpen(true);
+        } else localStorage.removeItem('openModal');
+      }
+    } catch (err) {
+      console.error('Failed to restore modal', err);
+      localStorage.removeItem('openModal');
+    }
+  }, [topics, images]);
+
+
   const activeTopic = useMemo(() => topics.find(topic => topic._id === activeId), [activeId, topics]);
 
   const fetchAllData = () => {
@@ -122,7 +152,8 @@ const StudyBoardPage = () => {
   useEffect(() => {
     fetchAllData();
   }, [subjectId]);
-  
+
+
   const columns = useMemo(() => ({
     'To Study': topics.filter(t => t.status === 'To Study'),
     'Partially Studied': topics.filter(t => t.status === 'Partially Studied'),
@@ -172,28 +203,34 @@ const StudyBoardPage = () => {
   const openModal = (topic) => {
     setEditingTopic(topic);
     setIsModalOpen(true);
+    localStorage.setItem('openModal', JSON.stringify({ type: 'topic', id: topic._id }));
   };
   const closeModal = () => {
     setEditingTopic(null);
     setIsModalOpen(false);
-  };
-  
-  const openImageViewer = (image) => {
-    setViewingImage(image);
-    setIsViewerOpen(true);
-  };
-  const closeImageViewer = () => {
-    setViewingImage(null);
-    setIsViewerOpen(false);
+    localStorage.removeItem('openModal');
   };
 
   const openNotesModal = (topic) => {
     setEditingTopic(topic);
     setIsNotesModalOpen(true);
+    localStorage.setItem('openModal', JSON.stringify({ type: 'notes', id: topic._id }));
   };
   const closeNotesModal = () => {
     setEditingTopic(null);
     setIsNotesModalOpen(false);
+    localStorage.removeItem('openModal');
+  };
+
+  const openImageViewer = (image) => {
+    setViewingImage(image);
+    setIsViewerOpen(true);
+    localStorage.setItem('openModal', JSON.stringify({ type: 'image', id: image._id }));
+  };
+  const closeImageViewer = () => {
+    setViewingImage(null);
+    setIsViewerOpen(false);
+    localStorage.removeItem('openModal');
   };
 
   return (
@@ -226,7 +263,7 @@ const StudyBoardPage = () => {
 
         <main>
           <form onSubmit={handleAddTopic} className="mb-8 flex gap-3">
-            <input type="text" value={newTopicTitle} onChange={(e) => setNewTopicTitle(e.target.value)} placeholder="Add a new topic to 'To Study'..." className="flex-grow p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"/>
+            <input type="text" value={newTopicTitle} onChange={(e) => setNewTopicTitle(e.target.value)} placeholder="Add a new topic to 'To Study'..." className="flex-grow p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500" />
             <button type="submit" className="bg-blue-600 text-white px-5 py-3 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-semibold shadow flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
               Add Topic
