@@ -59,7 +59,6 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
     }
   };
 
-  // This is the missing function
   const handleRunOcr = async () => {
     setIsOcrRunning(true);
     setOcrProgress(0);
@@ -80,6 +79,9 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
     onRequestClose(); // Close the main image viewer
   };
 
+  const stageWidth = window.innerWidth * 0.6;
+  const stageHeight = window.innerHeight * 0.8;
+
   return (
     <>
       <Modal
@@ -89,7 +91,8 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
         className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-7xl h-[90vh] flex flex-col md:flex-row gap-6 border border-slate-200 dark:border-slate-700 focus:outline-none"
         overlayClassName="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center"
       >
-        <div className="flex-grow flex flex-col md:flex-row gap-6 overflow-hidden">
+        <div className="flex-grow flex flex-col md:flex-row gap-6 overflow-hidden h-full">
+          {/* LEFT: IMAGE & ANNOTATIONS */}
           <div className="flex-1 h-full flex items-center justify-center">
             <AnnotationCanvas
               imageUrl={image.imageUrl}
@@ -98,7 +101,9 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
               selectedColor={selectedColor}
             />
           </div>
-          <div className="w-full md:w-64 flex-shrink-0 flex flex-col">
+
+          {/* RIGHT: COLOR, DESCRIPTION, BUTTONS */}
+          <div className="w-full md:w-64 flex-shrink-0 flex flex-col h-full max-h-full overflow-auto">
             <h3 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-100">Highlighter Color</h3>
             <div className="space-y-2 mb-6">
               {Object.values(statusColors).map(colorInfo => (
@@ -111,15 +116,17 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
                 </button>
               ))}
             </div>
-            <div className="flex-grow">
+
+            <div className="flex flex-col mb-4">
               <label className="block text-xl font-bold mb-2 text-slate-800 dark:text-slate-100">Description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full h-32 p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-slate-800 dark:text-slate-100"
+                className="w-full h-32 p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-slate-800 dark:text-slate-100 resize-y"
               />
             </div>
-            <div className="space-y-2 mt-4">
+
+            <div className="mt-auto space-y-2">
               <button onClick={handleRunOcr} disabled={isOcrRunning} className="w-full bg-teal-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-teal-700 disabled:bg-gray-400">
                 {isOcrRunning ? `Extracting... ${ocrProgress}%` : 'Extract Text (OCR)'}
               </button>

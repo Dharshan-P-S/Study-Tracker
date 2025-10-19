@@ -56,7 +56,7 @@ const ImageCard = ({ image, onClick }) => {
   const statusColors = { 'To Study': 'border-blue-500', 'Partially Studied': 'border-yellow-500', 'Fully Studied': 'border-green-500', 'To Be Revised': 'border-red-500' };
   return (
     <div onClick={onClick} className={`w-48 flex-shrink-0 border-t-4 ${statusColors[image.status]} rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-slate-800`}>
-      <img src={image.imageUrl} alt={image.description} className="w-full h-32 object-cover rounded-t-sm" />
+      <img src={image.imageUrl} alt={image.description} className="w-full h-32 object-contain rounded-t-sm" />
       <div className="p-2"><p className="text-sm text-slate-600 dark:text-slate-300 truncate">{image.description || 'No description'}</p></div>
     </div>
   );
