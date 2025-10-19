@@ -29,3 +29,9 @@ export const deleteImage = async (imageId) => {
     const response = await axios.delete(`${API_BASE_URL}/images/${imageId}`);
     return response.data;
 };
+
+// PUT /api/images/:imageId/notes
+export const updateImageNotes = async (imageId, notes) => {
+  const response = await axios.put(`${API_BASE_URL}/images/${imageId}/notes`, { notes });
+  return response.data;
+};

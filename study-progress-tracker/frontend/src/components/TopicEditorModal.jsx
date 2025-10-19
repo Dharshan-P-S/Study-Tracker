@@ -13,27 +13,24 @@ const TopicEditorModal = ({ isOpen, onRequestClose, topic, onTopicUpdate }) => {
     }
   }, [topic]);
 
-  // Handler for saving the title change
   const handleSave = async (e) => {
     e.preventDefault();
     try {
       await updateTopic(topic._id, { title });
-      onTopicUpdate(); // Refresh the board
-      onRequestClose(); // Close the modal
+      onTopicUpdate();
+      onRequestClose();
     } catch (error) {
       console.error("Failed to update topic", error);
       alert("Error saving topic.");
     }
   };
 
-  // Handler for deleting the topic
   const handleDelete = async () => {
-    // Show a confirmation dialog to prevent accidental deletion
     if (window.confirm(`Are you sure you want to delete the topic "${topic.title}"?`)) {
       try {
         await deleteTopic(topic._id);
-        onTopicUpdate(); // Refresh the board
-        onRequestClose(); // Close the modal
+        onTopicUpdate();
+        onRequestClose();
       } catch (error) {
         console.error("Failed to delete topic", error);
         alert("Error deleting topic.");
@@ -64,7 +61,6 @@ const TopicEditorModal = ({ isOpen, onRequestClose, topic, onTopicUpdate }) => {
         </div>
 
         <div className="flex justify-between items-center">
-          {/* Delete button on the left */}
           <button 
             type="button" 
             onClick={handleDelete} 
@@ -72,11 +68,9 @@ const TopicEditorModal = ({ isOpen, onRequestClose, topic, onTopicUpdate }) => {
           >
             Delete Topic
           </button>
-          
-          {/* Save and Cancel buttons on the right */}
           <div className="flex gap-4">
-            <button type="button" onClick={onRequestClose} className="bg-slate-500 text-white px-4 py-2 rounded-md hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500">Cancel</button>
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">Save</button>
+            <button type="button" onClick={onRequestClose} className="bg-slate-500 text-white px-4 py-2 rounded-md hover:bg-slate-600">Cancel</button>
+            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save</button>
           </div>
         </div>
       </form>

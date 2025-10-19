@@ -15,7 +15,7 @@ cloudinary.config({
 
 export const updateTopic = async (req, res) => {
   try {
-    const { title, text, status, revisionDate, removeImage } = req.body;
+    const { title, text, status, revisionDate, removeImage, notes } = req.body;
     const topic = await Topic.findOne({ _id: req.params.topicId, userId: req.user._id });
 
     if (!topic) {
@@ -49,11 +49,35 @@ export const updateTopic = async (req, res) => {
     topic.status = status || topic.status;
     topic.revisionDate = revisionDate || topic.revisionDate;
 
+    if (notes) {
+      topic.notes = JSON.parse(notes);
+    }
+
     const updatedTopic = await topic.save();
     res.json(updatedTopic);
 
   } catch (error) {
     console.error("Error updating topic:", error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Update only a topic's notes
+// @route   PUT /api/topics/:topicId/notes
+export const updateTopicNotes = async (req, res) => {
+  try {
+    const { notes } = req.body; // Expects an array of notes
+    const topic = await Topic.findOne({ _id: req.params.topicId, userId: req.user._id });
+
+    if (topic) {
+      topic.notes = notes;
+      const updatedTopic = await topic.save();
+      res.json(updatedTopic);
+    } else {
+      res.status(404).json({ message: 'Topic not found' });
+    }
+  } catch (error) {
+    console.error("Error updating notes:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 };

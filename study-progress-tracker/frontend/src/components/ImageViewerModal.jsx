@@ -4,10 +4,12 @@ import Tesseract from 'tesseract.js';
 import { updateImage, deleteImage } from '../api/imageApi';
 import AnnotationCanvas from './AnnotationCanvas';
 import OcrSplitterModal from './OcrSplitterModal';
+import ImageNotesModal from './ImageNotesModal';
 
 Modal.setAppElement('#root');
 
 const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }) => {
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('');
   const [annotations, setAnnotations] = useState([]);
@@ -127,6 +129,9 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
             </div>
 
             <div className="mt-auto space-y-2">
+              <button onClick={() => setIsNotesModalOpen(true)} className="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700">
+                Manage Notes
+              </button>
               <button onClick={handleRunOcr} disabled={isOcrRunning} className="w-full bg-teal-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-teal-700 disabled:bg-gray-400">
                 {isOcrRunning ? `Extracting... ${ocrProgress}%` : 'Extract Text (OCR)'}
               </button>
@@ -146,6 +151,13 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
         onRequestClose={handleSplitterClose}
         ocrText={ocrResultText}
         subjectId={subjectId}
+      />
+
+      <ImageNotesModal
+        isOpen={isNotesModalOpen}
+        onRequestClose={() => setIsNotesModalOpen(false)}
+        image={image}
+        onUpdate={onUpdate}
       />
     </>
   );

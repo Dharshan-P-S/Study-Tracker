@@ -1,5 +1,22 @@
 import mongoose from 'mongoose';
 
+const noteSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  url: {
+    type: String,
+    required: true,
+  },
+  noteType: {
+    type: String,
+    required: true,
+    enum: ['YouTube', 'Local File'],
+  },
+});
+
 const imageSchema = new mongoose.Schema({
   userId: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -37,6 +54,7 @@ const imageSchema = new mongoose.Schema({
     fill: String,
     id: String,
   }],
+  notes: [noteSchema],
 }, { 
   timestamps: true 
 });

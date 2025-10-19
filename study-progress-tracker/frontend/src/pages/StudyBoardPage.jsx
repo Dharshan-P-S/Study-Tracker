@@ -7,10 +7,11 @@ import Timer from '../components/Timer';
 import TopicEditorModal from '../components/TopicEditorModal';
 import ImageUploadModal from '../components/ImageUploadModal';
 import ImageViewerModal from '../components/ImageViewerModal';
+import NotesModal from '../components/NotesModal';
 import { DndContext, useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
-// --- Icon Components (No Changes) ---
+// --- Icon Components ---
 const NoteIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -26,9 +27,14 @@ const EditIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L15.232 5.232z" />
   </svg>
 );
+const NotesIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.536a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+    </svg>
+);
 
-// --- TopicCard (No Changes) ---
-const TopicCard = ({ topic, onEditClick, isDragging, isOverlay, isAnyEditing }) => {
+// --- TopicCard with Edit and Notes buttons ---
+const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, isAnyEditing }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: topic._id });
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -36,22 +42,34 @@ const TopicCard = ({ topic, onEditClick, isDragging, isOverlay, isAnyEditing }) 
     cursor: 'grab',
     transition: isOverlay ? 'none' : 'box-shadow 150ms ease, transform 150ms ease',
   };
+
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={`relative p-4 rounded-lg transition-all shadow-sm hover:shadow-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`relative p-4 rounded-lg transition-all ${isOverlay ? 'shadow-2xl scale-[1.02]' : 'shadow-sm hover:shadow-md'} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700`}
+    >
       <div className="flex justify-between items-start gap-2">
         <div className="flex-1 pr-10">
           <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">{topic.title}</h4>
-          <div className="flex items-center gap-2">{topic.text && <NoteIcon />} {topic.imageUrl && <ImageIcon />}</div>
+          <div className="flex items-center gap-2">
+            {topic.notes && topic.notes.length > 0 && <NotesIcon />}
+          </div>
         </div>
       </div>
       {!isAnyEditing && (
-        <button onClick={(e) => { e.stopPropagation(); onEditClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="absolute -right-3 top-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit topic"><EditIcon /></button>
+        <div className="absolute -right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+            <button onClick={(e) => { e.stopPropagation(); onEditClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit topic"><EditIcon /></button>
+            <button onClick={(e) => { e.stopPropagation(); onNotesClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit notes"><NotesIcon /></button>
+        </div>
       )}
     </div>
   );
 };
 
-// --- ImageCard (No Changes) ---
+// --- ImageCard Component ---
 const ImageCard = ({ image, onClick }) => {
   const statusColors = { 'To Study': 'border-blue-500', 'Partially Studied': 'border-yellow-500', 'Fully Studied': 'border-green-500', 'To Be Revised': 'border-red-500' };
   return (
@@ -62,8 +80,8 @@ const ImageCard = ({ image, onClick }) => {
   );
 };
 
-// --- Column (No Changes) ---
-const Column = ({ id, title, topics, onTopicClick, activeId, isAnyEditing }) => {
+// --- Column Component ---
+const Column = ({ id, title, topics, onTopicClick, onNotesClick, activeId, isAnyEditing }) => {
   const { setNodeRef } = useDroppable({ id });
   const statusColors = { 'To Study': 'border-blue-500', 'Partially Studied': 'border-yellow-500', 'Fully Studied': 'border-green-500', 'To Be Revised': 'border-red-500' };
   return (
@@ -71,7 +89,7 @@ const Column = ({ id, title, topics, onTopicClick, activeId, isAnyEditing }) => 
       <h3 className="font-bold p-4 text-lg text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700">{title}</h3>
       <div ref={setNodeRef} className="p-4 space-y-3 min-h-[200px]">
         {topics.length > 0 ? (
-          topics.map(topic => <TopicCard key={topic._id} topic={topic} onEditClick={() => onTopicClick(topic)} isDragging={activeId === topic._id} isAnyEditing={isAnyEditing}/>)
+          topics.map(topic => <TopicCard key={topic._id} topic={topic} onEditClick={() => onTopicClick(topic)} onNotesClick={() => onNotesClick(topic)} isDragging={activeId === topic._id} isAnyEditing={isAnyEditing}/>)
         ) : (
           <div className="flex items-center justify-center h-full text-center text-sm text-slate-500 dark:text-slate-400 py-4">Drop topics here.</div>
         )}
@@ -89,6 +107,7 @@ const StudyBoardPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
   const [editingTopic, setEditingTopic] = useState(null);
   const [activeId, setActiveId] = useState(null);
@@ -100,32 +119,10 @@ const StudyBoardPage = () => {
     getImagesForSubject(subjectId).then(setImages).catch(console.error);
   };
 
-  // Effect 1: Fetch all data on initial load or when the subject changes.
   useEffect(() => {
     fetchAllData();
   }, [subjectId]);
-
-  // --- NEW ---
-  // Effect 2: This hook runs AFTER the images have been loaded.
-  // It checks localStorage to see if a modal was open before a reload.
-  useEffect(() => {
-    // We must wait for images to be loaded to avoid a race condition.
-    if (images.length > 0) {
-      const lastOpenImageId = localStorage.getItem('lastOpenImageId');
-      if (lastOpenImageId) {
-        const imageToOpen = images.find(img => img._id === lastOpenImageId);
-        if (imageToOpen) {
-          // If we find the image, restore the state to open the modal.
-          setViewingImage(imageToOpen);
-          setIsViewerOpen(true);
-        } else {
-          // If the ID is invalid (e.g., image was deleted), clean up localStorage.
-          localStorage.removeItem('lastOpenImageId');
-        }
-      }
-    }
-  }, [images]); // The key is adding `images` to the dependency array.
-
+  
   const columns = useMemo(() => ({
     'To Study': topics.filter(t => t.status === 'To Study'),
     'Partially Studied': topics.filter(t => t.status === 'Partially Studied'),
@@ -176,26 +173,27 @@ const StudyBoardPage = () => {
     setEditingTopic(topic);
     setIsModalOpen(true);
   };
-
   const closeModal = () => {
     setEditingTopic(null);
     setIsModalOpen(false);
   };
-
-  // --- MODIFIED ---
+  
   const openImageViewer = (image) => {
     setViewingImage(image);
     setIsViewerOpen(true);
-    // Save the ID to localStorage when the viewer is opened.
-    localStorage.setItem('lastOpenImageId', image._id);
   };
-
-  // --- MODIFIED ---
   const closeImageViewer = () => {
     setViewingImage(null);
     setIsViewerOpen(false);
-    // Clean up localStorage when the viewer is closed by the user.
-    localStorage.removeItem('lastOpenImageId');
+  };
+
+  const openNotesModal = (topic) => {
+    setEditingTopic(topic);
+    setIsNotesModalOpen(true);
+  };
+  const closeNotesModal = () => {
+    setEditingTopic(null);
+    setIsNotesModalOpen(false);
   };
 
   return (
@@ -237,28 +235,18 @@ const StudyBoardPage = () => {
 
           <div className="flex flex-col md:flex-row gap-6">
             {Object.entries(columns).map(([status, topicsInColumn]) => (
-              <Column key={status} id={status} title={status} topics={topicsInColumn} onTopicClick={openModal} activeId={activeId} isAnyEditing={isModalOpen} />
+              <Column key={status} id={status} title={status} topics={topicsInColumn} onTopicClick={openModal} onNotesClick={openNotesModal} activeId={activeId} isAnyEditing={isModalOpen || isNotesModalOpen} />
             ))}
           </div>
 
           <TopicEditorModal isOpen={isModalOpen} onRequestClose={closeModal} topic={editingTopic} onTopicUpdate={fetchAllData} />
+          <NotesModal isOpen={isNotesModalOpen} onRequestClose={closeNotesModal} topic={editingTopic} onUpdate={fetchAllData} />
         </main>
-
-        <ImageUploadModal isOpen={isUploadModalOpen} onRequestClose={() => setIsUploadModalOpen(false)} subjectId={subjectId} onUploadComplete={fetchAllData} />
-
-        {/* --- MODIFIED: This component will now correctly reopen on refresh --- */}
-        <ImageViewerModal 
-          isOpen={isViewerOpen} 
-          onRequestClose={closeImageViewer} 
-          image={viewingImage} 
-          onUpdate={fetchAllData} 
-          subjectId={subjectId} 
-        />
       </div>
 
       <DragOverlay dropAnimation={null}>
         {activeTopic ? (
-          <div className="p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <div className="p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl scale-[1.02]">
             <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">{activeTopic.title}</h4>
             <div className="flex items-center gap-2">
               {activeTopic.text && <NoteIcon />}
@@ -267,6 +255,8 @@ const StudyBoardPage = () => {
           </div>
         ) : null}
       </DragOverlay>
+      <ImageUploadModal isOpen={isUploadModalOpen} onRequestClose={() => setIsUploadModalOpen(false)} subjectId={subjectId} onUploadComplete={fetchAllData} />
+      <ImageViewerModal isOpen={isViewerOpen} onRequestClose={closeImageViewer} image={viewingImage} onUpdate={fetchAllData} subjectId={subjectId} />
     </DndContext>
   );
 };

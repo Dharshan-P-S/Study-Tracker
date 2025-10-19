@@ -100,3 +100,23 @@ export const deleteImage = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// @desc    Update only an image's notes
+// @route   PUT /api/images/:imageId/notes
+export const updateImageNotes = async (req, res) => {
+  try {
+    const { notes } = req.body; // Expects an array of notes
+    const image = await Image.findOne({ _id: req.params.imageId, userId: req.user._id });
+
+    if (image) {
+      image.notes = notes;
+      const updatedImage = await image.save();
+      res.json(updatedImage);
+    } else {
+      res.status(404).json({ message: 'Image not found' });
+    }
+  } catch (error) {
+    console.error("Error updating image notes:", error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};

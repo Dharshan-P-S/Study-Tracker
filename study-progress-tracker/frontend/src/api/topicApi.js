@@ -40,3 +40,8 @@ export const deleteTopic = async (topicId) => {
   const response = await axios.delete(`${API_BASE_URL}/topics/${topicId}`);
   return response.data;
 };
+
+export const updateTopicNotes = async (topicId, notes) => {
+  const response = await axios.put(`${API_BASE_URL}/topics/${topicId}/notes`, { notes });
+  return response.data;
+};
