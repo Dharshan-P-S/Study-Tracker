@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getTopicsForSubject, createTopicForSubject, updateTopicStatus } from '../api/topicApi';
 import { logStudySession } from '../api/sessionApi';
 import { getImagesForSubject } from '../api/imageApi';
+import { getSubjectById } from '../api/subjectsApi';
 import Timer from '../components/Timer';
 import TopicEditorModal from '../components/TopicEditorModal';
 import ImageUploadModal from '../components/ImageUploadModal';
@@ -101,6 +102,7 @@ const Column = ({ id, title, topics, onTopicClick, onNotesClick, activeId, isAny
 // --- Main Page ---
 const StudyBoardPage = () => {
   const { subjectId } = useParams();
+  const [subject, setSubject] = useState(null);
   const [topics, setTopics] = useState([]);
   const [images, setImages] = useState([]);
   const [newTopicTitle, setNewTopicTitle] = useState('');
@@ -145,6 +147,7 @@ const StudyBoardPage = () => {
   const activeTopic = useMemo(() => topics.find(topic => topic._id === activeId), [activeId, topics]);
 
   const fetchAllData = () => {
+    getSubjectById(subjectId).then(setSubject).catch(console.error);
     getTopicsForSubject(subjectId).then(setTopics).catch(console.error);
     getImagesForSubject(subjectId).then(setImages).catch(console.error);
   };
@@ -244,6 +247,10 @@ const StudyBoardPage = () => {
           <div className="w-full sm:w-auto"><Timer onSessionComplete={handleSessionComplete} /></div>
         </header>
 
+        <h1 className="text-4xl font-bold tracking-tight text-slate-800 dark:text-slate-100 mb-6">
+          {subject ? subject.name : 'Loading...'}
+        </h1>
+
         <section className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Image Library</h2>
@@ -256,7 +263,7 @@ const StudyBoardPage = () => {
             {images.length > 0 ? (
               images.map(img => <ImageCard key={img._id} image={img} onClick={() => openImageViewer(img)} />)
             ) : (
-              <div className="flex items-center justify-center w-full"><p className="text-slate-500">No images uploaded for this subject yet.</p></div>
+              <div className="flex items-center justify-center w-full"><p className="text-slate-500">Add Topics as Images...</p></div>
             )}
           </div>
         </section>

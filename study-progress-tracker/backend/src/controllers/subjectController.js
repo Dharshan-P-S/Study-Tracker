@@ -40,3 +40,17 @@ export const getSubjects = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// Add this new function to the file
+export const getSubjectById = async (req, res) => {
+  try {
+    const subject = await Subject.findOne({ _id: req.params.subjectId, userId: req.user._id });
+    if (subject) {
+      res.json(subject);
+    } else {
+      res.status(404).json({ message: 'Subject not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};

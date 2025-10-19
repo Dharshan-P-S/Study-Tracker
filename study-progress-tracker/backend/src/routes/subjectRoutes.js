@@ -1,6 +1,6 @@
 // backend/src/routes/subjectRoutes.js
 import express from 'express';
-import { createSubject, getSubjects } from '../controllers/subjectController.js';
+import { createSubject, getSubjects, getSubjectById } from '../controllers/subjectController.js';
 import { createTopicForSubject, getTopicsForSubject } from '../controllers/topicController.js';
 import { uploadImage, getImagesForSubject } from '../controllers/imageController.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -9,6 +9,9 @@ import multer from 'multer';
 const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
+
+router.route('/:subjectId')
+    .get(protect, getSubjectById);
 
 // Routes for subjects themselves
 // GET /api/subjects and POST /api/subjects

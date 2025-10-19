@@ -45,3 +45,8 @@ export const updateTopic = async (subjectId, chapterId, topicId, topicData) => {
     const response = await axios.put(`${API_BASE_URL}/subjects/${subjectId}/chapters/${chapterId}/topics/${topicId}`, topicData);
     return response.data;
 };
+
+export const getSubjectById = async (subjectId) => {
+    const response = await axios.get(`${API_BASE_URL}/subjects/${subjectId}`);
+    return response.data;
+};
