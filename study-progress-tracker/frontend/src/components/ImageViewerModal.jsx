@@ -124,7 +124,7 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full h-32 p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-slate-800 dark:text-slate-100 resize-y"
+                className="w-full h-30 p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-slate-800 dark:text-slate-100 resize-y"
               />
             </div>
 
