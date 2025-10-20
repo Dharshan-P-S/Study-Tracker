@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import SubjectsPage from './pages/SubjectsPage';
 import StudyBoardPage from './pages/StudyBoardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import AboutPage from './pages/AboutPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -57,6 +58,7 @@ function App() {
           <Route path="/subjects" element={<SubjectsPage />} />
           <Route path="/subjects/:subjectId" element={<StudyBoardPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/about" element={<AboutPage />} />
         </Route>
         
         {/* Redirect root path based on login status */}

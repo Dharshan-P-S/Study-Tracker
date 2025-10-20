@@ -58,13 +58,16 @@ const SubjectsPage = () => {
   return (
     // Main container with constrained width and more padding
     <div className="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-      
+
       {/* Page Header */}
       <header className="flex justify-between items-center pb-4 mb-6 border-b border-slate-200 dark:border-slate-700">
         <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
           Welcome, {user?.name}!
         </h1>
         <div className="flex items-center gap-4">
+          <Link to="/about" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-semibold shadow">            
+            About
+          </Link>
           <Link to="/analytics" className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm font-semibold shadow">
             View Analytics
           </Link>
@@ -76,11 +79,11 @@ const SubjectsPage = () => {
           </button>
         </div>
       </header>
-      
+
       <main>
         {/* Section Header */}
         <div className="flex justify-between items-center mb-4">
-            <h2 className="text-3xl font-bold tracking-tight">My Subjects</h2>
+          <h2 className="text-3xl font-bold tracking-tight">My Subjects</h2>
         </div>
 
         {/* Add Subject Form */}
