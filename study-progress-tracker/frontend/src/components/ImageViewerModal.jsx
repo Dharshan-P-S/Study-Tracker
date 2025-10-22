@@ -5,6 +5,8 @@ import { updateImage, deleteImage } from '../api/imageApi';
 import AnnotationCanvas from './AnnotationCanvas';
 import OcrSplitterModal from './OcrSplitterModal';
 import ImageNotesModal from './ImageNotesModal';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 Modal.setAppElement('#root');
 
@@ -13,6 +15,7 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('');
   const [annotations, setAnnotations] = useState([]);
+  const [dueDate, setDueDate] = useState(null);
   const [selectedColor, setSelectedColor] = useState({ name: 'To Study', fill: 'rgba(59, 130, 246, 0.5)' });
   
   const [isOcrRunning, setIsOcrRunning] = useState(false);
@@ -25,6 +28,7 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
       setDescription(image.description || '');
       setStatus(image.status || 'To Study');
       setAnnotations(image.annotations || []);
+      setDueDate(image.dueDate ? new Date(image.dueDate) : null);
     }
   }, [image]);
 
@@ -39,7 +43,7 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
 
   const handleSaveChanges = async () => {
     try {
-      await updateImage(image._id, { description, status, annotations });
+      await updateImage(image._id, { description, status, annotations, dueDate });
       onUpdate();
       onRequestClose();
     } catch (error) {
@@ -126,6 +130,22 @@ const ImageViewerModal = ({ isOpen, onRequestClose, image, onUpdate, subjectId }
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full h-30 p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-slate-800 dark:text-slate-100 resize-y"
               />
+
+              <div className="mt-4">
+                 <label className="block text-xl font-bold mb-2 text-slate-800 dark:text-slate-100">Due Date</label>
+                 <DatePicker
+                    selected={dueDate}
+                    onChange={(date) => setDueDate(date)}
+                    showTimeSelect
+                    minDate={new Date()}
+                    timeIntervals={15}
+                    dateFormat="Pp"
+                    isClearable
+                    placeholderText="Not set"
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-slate-800 dark:text-slate-100"
+                    calendarClassName="dark-mode-calendar"
+                  />
+              </div>
             </div>
 
             <div className="mt-auto space-y-2">

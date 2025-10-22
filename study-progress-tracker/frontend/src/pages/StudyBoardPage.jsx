@@ -83,7 +83,15 @@ const ImageCard = ({ image, onClick }) => {
   return (
     <div onClick={onClick} className={`w-48 flex-shrink-0 border-t-4 ${statusColors[image.status]} rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-slate-800`}>
       <img src={image.imageUrl} alt={image.description} className="w-full h-32 object-contain rounded-t-sm" />
-      <div className="p-2"><p className="text-sm text-slate-600 dark:text-slate-300 truncate">{image.description || 'No description'}</p></div>
+      <div className="p-2">
+        <p className="text-sm ... truncate">{image.description || 'No description'}</p>
+        {/* 👇 Display Due Date */}
+        {image.dueDate && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Due: {new Date(image.dueDate).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+            </p>
+        )}
+      </div>
     </div>
   );
 };
@@ -283,13 +291,14 @@ const StudyBoardPage = () => {
                 onChange={(date) => setNewTopicDueDate(date)}
                 showTimeSelect
                 minDate={new Date()}
-                timeIntervals={1}
-                dateFormat="Pp"
+                timeIntervals={15}
+                timeFormat="h:mm aa" // 
+                dateFormat="MM/dd/yyyy h:mm aa" // 
                 isClearable
                 placeholderText="Set due date (optional)"
                 className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 w-full sm:w-auto"
                 wrapperClassName="w-full sm:w-auto flex-shrink-0"
-                calendarClassName="dark-mode-calendar"
+                calendarClassName="dark-mode-calendar" // Keep dark mode styling
              />
             <button type="submit" className="bg-blue-600 text-white px-5 py-3 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-semibold shadow flex items-center justify-center gap-2 flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>

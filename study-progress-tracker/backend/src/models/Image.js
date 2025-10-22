@@ -45,7 +45,6 @@ const imageSchema = new mongoose.Schema({
     enum: ['To Study', 'Partially Studied', 'Fully Studied', 'To Be Revised'],
     default: 'To Study',
   },
-  // This is the corrected way to define the array of sub-documents
   annotations: [{
     x: Number,
     y: Number,
@@ -55,6 +54,10 @@ const imageSchema = new mongoose.Schema({
     id: String,
   }],
   notes: [noteSchema],
+  dueDate: {
+    type: Date,
+    required: false,
+  },
 }, { 
   timestamps: true 
 });

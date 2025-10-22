@@ -73,7 +73,7 @@ const TopicEditorModal = ({ isOpen, onRequestClose, topic, onTopicUpdate }) => {
             onChange={(date) => setDueDate(date)}
             showTimeSelect
             minDate={new Date()} // Disable past dates
-            timeIntervals={1} // Allow minute selection
+            timeIntervals={15} 
             dateFormat="Pp" // Format like "10/22/2025, 2:30 PM"
             isClearable // Allows removing the date
             placeholderText="Click to select date and time"

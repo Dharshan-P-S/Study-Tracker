@@ -14,7 +14,7 @@ cloudinary.config({
 export const uploadImage = async (req, res) => {
   try {
     const { subjectId } = req.params;
-    const { description } = req.body;
+    const { description, dueDate } = req.body; 
 
     if (!req.file) {
       return res.status(400).json({ message: 'Please upload a file' });
@@ -24,15 +24,19 @@ export const uploadImage = async (req, res) => {
       folder: 'study-app-images',
     });
 
-    const newImage = new Image({
+    const imageData = {
       userId: req.user._id,
       subjectId,
       description,
       imageUrl: result.secure_url,
       publicId: result.public_id,
       status: 'To Study',
-    });
+    };
+    if (dueDate) {
+        imageData.dueDate = dueDate;
+    }
 
+    const newImage = new Image(imageData);
     const savedImage = await newImage.save();
     res.status(201).json(savedImage);
   } catch (error) {
@@ -57,25 +61,26 @@ export const getImagesForSubject = async (req, res) => {
 
 export const updateImage = async (req, res) => {
   try {
-    // We can now receive 'annotations' in the request body
-    const { description, status, annotations } = req.body;
+    const { description, status, annotations, dueDate } = req.body; 
     const image = await Image.findOne({ _id: req.params.imageId, userId: req.user._id });
 
     if (!image) {
       return res.status(404).json({ message: 'Image not found' });
     }
 
-    image.description = description || image.description;
+    image.description = description !== undefined ? description : image.description;
     image.status = status || image.status;
     
-    // If annotation data is sent, update it
     if (annotations) {
       image.annotations = annotations;
     }
 
+    image.dueDate = (dueDate === null || dueDate === '') ? undefined : dueDate; 
+
     const updatedImage = await image.save();
     res.json(updatedImage);
   } catch (error) {
+    console.error("Error updating image:", error); // Added logging
     res.status(500).json({ message: 'Server Error' });
   }
 };

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import Modal from 'react-modal';
 import { uploadImage } from '../api/imageApi';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 Modal.setAppElement('#root');
 
@@ -8,6 +10,7 @@ const ImageUploadModal = ({ isOpen, onRequestClose, subjectId, onUploadComplete 
   const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [dueDate, setDueDate] = useState(null);
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -20,6 +23,9 @@ const ImageUploadModal = ({ isOpen, onRequestClose, subjectId, onUploadComplete 
     const formData = new FormData();
     formData.append('description', description);
     formData.append('image', imageFile);
+    if (dueDate) {
+      formData.append('dueDate', dueDate.toISOString()); 
+    }
 
     try {
       await uploadImage(subjectId, formData);
@@ -28,6 +34,7 @@ const ImageUploadModal = ({ isOpen, onRequestClose, subjectId, onUploadComplete 
       // Reset form
       setDescription('');
       setImageFile(null);
+      setDueDate(null);
     } catch (error) {
       console.error('Failed to upload image', error);
       alert('Image upload failed.');
@@ -53,6 +60,22 @@ const ImageUploadModal = ({ isOpen, onRequestClose, subjectId, onUploadComplete 
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded"
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="block mb-1 font-semibold text-slate-600 dark:text-slate-300">Due Date (Optional)</label>
+          <DatePicker
+            selected={dueDate}
+            onChange={(date) => setDueDate(date)}
+            showTimeSelect
+            minDate={new Date()}
+            timeIntervals={15}
+            dateFormat="Pp"
+            isClearable
+            placeholderText="Set due date..."
+            className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-slate-800 dark:text-slate-100"
+            calendarClassName="dark-mode-calendar"
           />
         </div>
 
