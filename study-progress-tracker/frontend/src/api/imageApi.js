@@ -31,7 +31,16 @@ export const deleteImage = async (imageId) => {
 };
 
 // PUT /api/images/:imageId/notes
-export const updateImageNotes = async (imageId, notes) => {
-  const response = await axios.put(`${API_BASE_URL}/images/${imageId}/notes`, { notes });
+export const updateImageNotes = async (imageId, notes, imageNoteFile = null) => {
+  const formData = new FormData();
+  formData.append('notes', JSON.stringify(notes)); // Send existing/new text/link notes
+
+  if (imageNoteFile) {
+    formData.append('imageNote', imageNoteFile); // Use 'imageNote' key
+  }
+
+  const response = await axios.put(`${API_BASE_URL}/images/${imageId}/notes`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return response.data;
-};
+};;

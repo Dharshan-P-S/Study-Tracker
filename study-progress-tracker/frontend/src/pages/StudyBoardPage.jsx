@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getTopicsForSubject, createTopicForSubject, updateTopicStatus } from '../api/topicApi';
+import { getSubjectById } from '../api/subjectsApi';
 import { logStudySession } from '../api/sessionApi';
 import { getImagesForSubject } from '../api/imageApi';
-import { getSubjectById } from '../api/subjectsApi';
 import Timer from '../components/Timer';
 import TopicEditorModal from '../components/TopicEditorModal';
 import ImageUploadModal from '../components/ImageUploadModal';
@@ -11,6 +11,8 @@ import ImageViewerModal from '../components/ImageViewerModal';
 import NotesModal from '../components/NotesModal';
 import { DndContext, useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 // --- Icon Components ---
 const NoteIcon = () => (
@@ -34,7 +36,7 @@ const NotesIcon = () => (
   </svg>
 );
 
-// --- TopicCard with Edit and Notes buttons ---
+// --- TopicCard with Due Date Display ---
 const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, isAnyEditing }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: topic._id });
   const style = {
@@ -58,12 +60,17 @@ const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, is
           <div className="flex items-center gap-2">
             {topic.notes && topic.notes.length > 0 && <NotesIcon />}
           </div>
+          {topic.dueDate && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Due: {new Date(topic.dueDate).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+              </p>
+          )}
         </div>
       </div>
       {!isAnyEditing && (
-        <div className="absolute -right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-          <button onClick={(e) => { e.stopPropagation(); onEditClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit topic"><EditIcon /></button>
-          <button onClick={(e) => { e.stopPropagation(); onNotesClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit notes"><NotesIcon /></button>
+        <div className="absolute -right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 ">
+            <button onClick={(e) => { e.stopPropagation(); onEditClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit topic"><EditIcon /></button>
+            <button onClick={(e) => { e.stopPropagation(); onNotesClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit notes"><NotesIcon /></button>
         </div>
       )}
     </div>
@@ -106,6 +113,7 @@ const StudyBoardPage = () => {
   const [topics, setTopics] = useState([]);
   const [images, setImages] = useState([]);
   const [newTopicTitle, setNewTopicTitle] = useState('');
+  const [newTopicDueDate, setNewTopicDueDate] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
@@ -115,7 +123,7 @@ const StudyBoardPage = () => {
   const [activeId, setActiveId] = useState(null);
 
   useEffect(() => {
-    if (topics.length === 0 && images.length === 0) return; // wait until data is loaded
+    if (topics.length === 0 && images.length === 0) return;
 
     const stored = localStorage.getItem('openModal');
     if (!stored) return;
@@ -143,7 +151,6 @@ const StudyBoardPage = () => {
     }
   }, [topics, images]);
 
-
   const activeTopic = useMemo(() => topics.find(topic => topic._id === activeId), [activeId, topics]);
 
   const fetchAllData = () => {
@@ -155,7 +162,6 @@ const StudyBoardPage = () => {
   useEffect(() => {
     fetchAllData();
   }, [subjectId]);
-
 
   const columns = useMemo(() => ({
     'To Study': topics.filter(t => t.status === 'To Study'),
@@ -187,9 +193,10 @@ const StudyBoardPage = () => {
     e.preventDefault();
     if (!newTopicTitle.trim()) return;
     try {
-      const newTopic = await createTopicForSubject(subjectId, { title: newTopicTitle });
-      setTopics(prev => [...prev, newTopic]);
+      await createTopicForSubject(subjectId, { title: newTopicTitle, dueDate: newTopicDueDate });
       setNewTopicTitle('');
+      setNewTopicDueDate(null);
+      fetchAllData(); // Refresh list to show new topic
     } catch (error) { console.error('Failed to add topic', error); }
   };
 
@@ -269,9 +276,22 @@ const StudyBoardPage = () => {
         </section>
 
         <main>
-          <form onSubmit={handleAddTopic} className="mb-8 flex gap-3">
+          <form onSubmit={handleAddTopic} className="mb-8 flex flex-col sm:flex-row gap-3 items-stretch">
             <input type="text" value={newTopicTitle} onChange={(e) => setNewTopicTitle(e.target.value)} placeholder="Add a new topic to 'To Study'..." className="flex-grow p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500" />
-            <button type="submit" className="bg-blue-600 text-white px-5 py-3 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-semibold shadow flex items-center gap-2">
+            <DatePicker
+                selected={newTopicDueDate}
+                onChange={(date) => setNewTopicDueDate(date)}
+                showTimeSelect
+                minDate={new Date()}
+                timeIntervals={1}
+                dateFormat="Pp"
+                isClearable
+                placeholderText="Set due date (optional)"
+                className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 w-full sm:w-auto"
+                wrapperClassName="w-full sm:w-auto flex-shrink-0"
+                calendarClassName="dark-mode-calendar"
+             />
+            <button type="submit" className="bg-blue-600 text-white px-5 py-3 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-semibold shadow flex items-center justify-center gap-2 flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
               Add Topic
             </button>
@@ -279,12 +299,14 @@ const StudyBoardPage = () => {
 
           <div className="flex flex-col md:flex-row gap-6">
             {Object.entries(columns).map(([status, topicsInColumn]) => (
-              <Column key={status} id={status} title={status} topics={topicsInColumn} onTopicClick={openModal} onNotesClick={openNotesModal} activeId={activeId} isAnyEditing={isModalOpen || isNotesModalOpen} />
+              <Column key={status} id={status} title={status} topics={topicsInColumn} onTopicClick={openModal} onNotesClick={openNotesModal} activeId={activeId} isAnyEditing={isModalOpen || isNotesModalOpen || isViewerOpen} />
             ))}
           </div>
 
           <TopicEditorModal isOpen={isModalOpen} onRequestClose={closeModal} topic={editingTopic} onTopicUpdate={fetchAllData} />
           <NotesModal isOpen={isNotesModalOpen} onRequestClose={closeNotesModal} topic={editingTopic} onUpdate={fetchAllData} />
+          <ImageUploadModal isOpen={isUploadModalOpen} onRequestClose={() => setIsUploadModalOpen(false)} subjectId={subjectId} onUploadComplete={fetchAllData} />
+          <ImageViewerModal isOpen={isViewerOpen} onRequestClose={closeImageViewer} image={viewingImage} onUpdate={fetchAllData} subjectId={subjectId} />
         </main>
       </div>
 
@@ -293,14 +315,16 @@ const StudyBoardPage = () => {
           <div className="p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl scale-[1.02]">
             <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">{activeTopic.title}</h4>
             <div className="flex items-center gap-2">
-              {activeTopic.text && <NoteIcon />}
-              {activeTopic.imageUrl && <ImageIcon />}
+              {activeTopic.notes && activeTopic.notes.length > 0 && <NotesIcon />}
             </div>
+            {activeTopic.dueDate && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Due: {new Date(activeTopic.dueDate).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                </p>
+            )}
           </div>
         ) : null}
       </DragOverlay>
-      <ImageUploadModal isOpen={isUploadModalOpen} onRequestClose={() => setIsUploadModalOpen(false)} subjectId={subjectId} onUploadComplete={fetchAllData} />
-      <ImageViewerModal isOpen={isViewerOpen} onRequestClose={closeImageViewer} image={viewingImage} onUpdate={fetchAllData} subjectId={subjectId} />
     </DndContext>
   );
 };

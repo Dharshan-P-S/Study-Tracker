@@ -10,38 +10,49 @@ export const getTopicsForSubject = async (subjectId) => {
 
 // POST /api/subjects/:subjectId/topics
 export const createTopicForSubject = async (subjectId, topicData) => {
+  // topicData can include { title: '...', dueDate: '...' }
   const response = await axios.post(`${API_BASE_URL}/subjects/${subjectId}/topics`, topicData);
   return response.data;
 };
 
-// PUT /api/topics/:topicId
-// This now accepts FormData
-export const updateTopic = async (topicId, formData) => {
-  const response = await axios.put(`${API_BASE_URL}/topics/${topicId}`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+// PUT /api/topics/:topicId (Sends JSON for title and dueDate)
+export const updateTopic = async (topicId, topicData) => {
+  // topicData can include { title: '...', dueDate: '...' }
+  const response = await axios.put(`${API_BASE_URL}/topics/${topicId}`, topicData);
   return response.data;
 };
 
-// GET /api/topics/:topicId
+// GET /api/topics/:topicId (Corrected URL structure)
 export const getTopicById = async (topicId) => {
   const response = await axios.get(`${API_BASE_URL}/topics/${topicId}`);
   return response.data;
 };
 
+// PATCH /api/topics/:topicId/status
 export const updateTopicStatus = async (topicId, status) => {
   const response = await axios.patch(`${API_BASE_URL}/topics/${topicId}/status`, { status });
   return response.data;
 };
 
+// DELETE /api/topics/:topicId
 export const deleteTopic = async (topicId) => {
   const response = await axios.delete(`${API_BASE_URL}/topics/${topicId}`);
   return response.data;
 };
 
-export const updateTopicNotes = async (topicId, notes) => {
-  const response = await axios.put(`${API_BASE_URL}/topics/${topicId}/notes`, { notes });
+// PUT /api/topics/:topicId/notes (Sends FormData for notes + potential image)
+export const updateTopicNotes = async (topicId, notes, imageNoteFile = null) => {
+  const formData = new FormData();
+  formData.append('notes', JSON.stringify(notes));
+
+  if (imageNoteFile) {
+    formData.append('imageNote', imageNoteFile);
+  }
+
+  const response = await axios.put(`${API_BASE_URL}/topics/${topicId}/notes`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };

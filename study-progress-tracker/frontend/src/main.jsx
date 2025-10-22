@@ -4,9 +4,10 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 import { AuthProvider } from './context/AuthContext.jsx';
-import setupAxiosInterceptors from './api/axiosConfig.js'; // 👈 Import
+import setupAxiosInterceptors from './api/axiosConfig.js'; 
+import 'react-datepicker/dist/react-datepicker.css';
 
-setupAxiosInterceptors(); // 👈 Run the setup function
+setupAxiosInterceptors(); 
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

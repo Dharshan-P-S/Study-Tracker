@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'; // Make sure useEffect is imported
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import 'react-datepicker/dist/react-datepicker.css';
 
 // Page Imports
 import LoginPage from './pages/LoginPage';
