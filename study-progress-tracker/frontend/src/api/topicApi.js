@@ -56,3 +56,9 @@ export const updateTopicNotes = async (topicId, notes, imageNoteFile = null) => 
   });
   return response.data;
 };
+
+// GET /api/topics (Fetch all topics for calendar)
+export const getAllTopics = async () => {
+  const response = await axios.get(`${API_BASE_URL}/topics`);
+  return response.data;
+};

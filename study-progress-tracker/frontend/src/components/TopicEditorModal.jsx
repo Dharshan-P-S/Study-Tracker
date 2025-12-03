@@ -72,7 +72,6 @@ const TopicEditorModal = ({ isOpen, onRequestClose, topic, onTopicUpdate }) => {
             selected={dueDate}
             onChange={(date) => setDueDate(date)}
             showTimeSelect
-            minDate={new Date()} // Disable past dates
             timeIntervals={15} 
             dateFormat="Pp" // Format like "10/22/2025, 2:30 PM"
             isClearable // Allows removing the date

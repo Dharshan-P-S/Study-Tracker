@@ -212,3 +212,18 @@ export const updateTopicStatus = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// @desc    Get ALL topics for the logged-in user (for the Global Calendar)
+// @route   GET /api/topics
+export const getAllTopics = async (req, res) => {
+  try {
+    // Find all topics belonging to this user, select only necessary fields
+    const topics = await Topic.find({ userId: req.user._id })
+                          .select('title dueDate status subjectId')
+                          .populate('subjectId', 'name color'); // Get subject details for color coding
+    res.status(200).json(topics);
+  } catch (error) {
+    console.error("Error getting all topics:", error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};

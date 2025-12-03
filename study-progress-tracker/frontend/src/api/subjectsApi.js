@@ -1,4 +1,3 @@
-// frontend/src/api/subjectsApi.js
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5001/api';
@@ -25,7 +24,7 @@ export const createChapter = async (subjectId, chapterData) => {
     return response.data;
 };
 
-// --- Topic Functions (New) ---
+// --- Topic Functions ---
 export const getTopicsForChapter = async (subjectId, chapterId) => {
     const response = await axios.get(`${API_BASE_URL}/subjects/${subjectId}/chapters/${chapterId}/topics`);
     return response.data;
@@ -46,7 +45,22 @@ export const updateTopic = async (subjectId, chapterId, topicId, topicData) => {
     return response.data;
 };
 
+// --- Single Subject & Update/Delete Functions ---
+
 export const getSubjectById = async (subjectId) => {
+    // Fix: Ensure it points to /subjects/ID
     const response = await axios.get(`${API_BASE_URL}/subjects/${subjectId}`);
+    return response.data;
+};
+
+export const updateSubject = async (id, subjectData) => {
+    // Fix: Ensure it points to /subjects/ID
+    const response = await axios.put(`${API_BASE_URL}/subjects/${id}`, subjectData);
+    return response.data;
+};
+
+export const deleteSubject = async (id) => {
+    // Fix: Ensure it points to /subjects/ID
+    const response = await axios.delete(`${API_BASE_URL}/subjects/${id}`);
     return response.data;
 };

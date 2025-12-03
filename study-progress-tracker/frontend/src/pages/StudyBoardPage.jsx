@@ -36,7 +36,7 @@ const NotesIcon = () => (
   </svg>
 );
 
-// --- TopicCard with Due Date Display ---
+// --- TopicCard with Due Date Display (UPDATED with Overdue Check) ---
 const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, isAnyEditing }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: topic._id });
   const style = {
@@ -46,29 +46,34 @@ const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, is
     transition: isOverlay ? 'none' : 'box-shadow 150ms ease, transform 150ms ease',
   };
 
+  // Check if overdue: due date exists, is in the past, and not fully studied
+  const isOverdue = topic.dueDate && new Date(topic.dueDate) < new Date() && topic.status !== 'Fully Studied';
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      className={`relative p-4 rounded-lg transition-all ${isOverlay ? 'shadow-2xl scale-[1.02]' : 'shadow-sm hover:shadow-md'} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700`}
+      className={`relative p-4 rounded-lg transition-all ${isOverlay ? 'shadow-2xl scale-[1.02]' : 'shadow-sm hover:shadow-md'} 
+                  ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'}`}
     >
       <div className="flex justify-between items-start gap-2">
         <div className="flex-1 pr-10">
-          <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">{topic.title}</h4>
+          <h4 className={`font-semibold mb-2 ${isOverdue ? 'text-red-800 dark:text-red-200' : 'text-slate-800 dark:text-slate-100'}`}>{topic.title}</h4>
           <div className="flex items-center gap-2">
             {topic.notes && topic.notes.length > 0 && <NotesIcon />}
           </div>
           {topic.dueDate && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className={`text-xs mt-1 font-medium ${isOverdue ? 'text-red-600 dark:text-red-300' : 'text-slate-500 dark:text-slate-400'}`}>
                   Due: {new Date(topic.dueDate).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                  {isOverdue && " (Overdue)"}
               </p>
           )}
         </div>
       </div>
       {!isAnyEditing && (
-        <div className="absolute -right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 ">
+        <div className="absolute -right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1">
             <button onClick={(e) => { e.stopPropagation(); onEditClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit topic"><EditIcon /></button>
             <button onClick={(e) => { e.stopPropagation(); onNotesClick(); }} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-2 shadow-sm hover:shadow-md" aria-label="Edit notes"><NotesIcon /></button>
         </div>
@@ -77,26 +82,18 @@ const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, is
   );
 };
 
-// --- ImageCard Component ---
+// --- ImageCard Component (No Changes) ---
 const ImageCard = ({ image, onClick }) => {
   const statusColors = { 'To Study': 'border-blue-500', 'Partially Studied': 'border-yellow-500', 'Fully Studied': 'border-green-500', 'To Be Revised': 'border-red-500' };
   return (
     <div onClick={onClick} className={`w-48 flex-shrink-0 border-t-4 ${statusColors[image.status]} rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-slate-800`}>
       <img src={image.imageUrl} alt={image.description} className="w-full h-32 object-contain rounded-t-sm" />
-      <div className="p-2">
-        <p className="text-sm ... truncate">{image.description || 'No description'}</p>
-        {/* 👇 Display Due Date */}
-        {image.dueDate && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Due: {new Date(image.dueDate).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
-            </p>
-        )}
-      </div>
+      <div className="p-2"><p className="text-sm text-slate-600 dark:text-slate-300 truncate">{image.description || 'No description'}</p></div>
     </div>
   );
 };
 
-// --- Column Component ---
+// --- Column Component (No Changes) ---
 const Column = ({ id, title, topics, onTopicClick, onNotesClick, activeId, isAnyEditing }) => {
   const { setNodeRef } = useDroppable({ id });
   const statusColors = { 'To Study': 'border-blue-500', 'Partially Studied': 'border-yellow-500', 'Fully Studied': 'border-green-500', 'To Be Revised': 'border-red-500' };
@@ -204,7 +201,7 @@ const StudyBoardPage = () => {
       await createTopicForSubject(subjectId, { title: newTopicTitle, dueDate: newTopicDueDate });
       setNewTopicTitle('');
       setNewTopicDueDate(null);
-      fetchAllData(); // Refresh list to show new topic
+      fetchAllData(); 
     } catch (error) { console.error('Failed to add topic', error); }
   };
 
@@ -290,15 +287,14 @@ const StudyBoardPage = () => {
                 selected={newTopicDueDate}
                 onChange={(date) => setNewTopicDueDate(date)}
                 showTimeSelect
-                minDate={new Date()}
-                timeIntervals={15}
-                timeFormat="h:mm aa" // 
-                dateFormat="MM/dd/yyyy h:mm aa" // 
+                // minDate={new Date()}  <-- REMOVED THIS LINE to allow backdating
+                timeIntervals={1} 
+                timeFormat="h:mm aa"
+                dateFormat="MM/dd/yyyy h:mm aa"
                 isClearable
                 placeholderText="Set due date (optional)"
                 className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 w-full sm:w-auto"
                 wrapperClassName="w-full sm:w-auto flex-shrink-0"
-                calendarClassName="dark-mode-calendar" // Keep dark mode styling
              />
             <button type="submit" className="bg-blue-600 text-white px-5 py-3 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-semibold shadow flex items-center justify-center gap-2 flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>

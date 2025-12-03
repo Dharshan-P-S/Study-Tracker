@@ -4,13 +4,16 @@ import {
   updateTopic, 
   deleteTopic, 
   updateTopicStatus,
-  updateTopicNotes 
+  updateTopicNotes,
+  getAllTopics
 } from '../controllers/topicController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import multer from 'multer';
 
 const upload = multer({ dest: 'uploads/' });
 const router = express.Router();
+
+router.get('/', protect, getAllTopics);
 
 router.patch('/:topicId/status', protect, updateTopicStatus);
 
