@@ -1,3 +1,4 @@
+// frontend/src/pages/CalendarPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllTopics } from '../api/topicApi';
@@ -11,6 +12,7 @@ const CalendarPage = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDateIsPast, setSelectedDateIsPast] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -27,7 +29,10 @@ const CalendarPage = () => {
   }, []);
 
   const handleDayClick = (date) => {
+    const todayStart = startOfDay(new Date());
+    const dayStart = startOfDay(date);
     setSelectedDate(date);
+    setSelectedDateIsPast(dayStart < todayStart);
     setIsModalOpen(true);
   };
 
@@ -42,6 +47,13 @@ const CalendarPage = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
   };
 
+  // helper: start of day
+  const startOfDay = (d) => {
+    const x = new Date(d);
+    x.setHours(0,0,0,0);
+    return x;
+  };
+
   const renderCalendarCells = () => {
     const cells = [];
     for (let i = 0; i < firstDay; i++) {
@@ -51,7 +63,11 @@ const CalendarPage = () => {
     for (let day = 1; day <= daysInMonth; day++) {
       const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
       const isToday = new Date().toDateString() === cellDate.toDateString();
-      
+
+      const todayStart = startOfDay(new Date());
+      const cellStart = startOfDay(cellDate);
+      const isPast = cellStart < todayStart; // past day
+
       let dayTopics = topics.filter(topic => {
         if (!topic.dueDate) return false;
         const tDate = new Date(topic.dueDate);
@@ -71,7 +87,8 @@ const CalendarPage = () => {
         <div 
             key={day} 
             onClick={() => handleDayClick(cellDate)}
-            className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 min-h-[120px] transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/80 relative group cursor-pointer`}
+            className={`p-2 min-h-[120px] transition-colors ${isPast ? 'opacity-70 cursor-pointer' : 'cursor-pointer'} 
+                        ${isPast ? 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800'} `}
         >
           <div className="flex justify-between items-start">
             <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -171,6 +188,8 @@ const CalendarPage = () => {
         dayTopics={selectedDayTopics}
         dayNotes={selectedDayNotes}
         onUpdate={fetchData}
+        // new prop to let the modal know adding should be disabled for past dates
+        disableAdd={selectedDateIsPast}
       />
     </div>
   );
