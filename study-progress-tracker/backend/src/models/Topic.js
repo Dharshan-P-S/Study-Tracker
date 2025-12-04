@@ -35,7 +35,7 @@ const noteSchema = new mongoose.Schema({
       enum: ['YouTube', 'Local File'],
       required: function() { return this.noteType === 'Link'; }
   }
-});
+}, { _id: false });
 
 const topicSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -51,7 +51,10 @@ const topicSchema = new mongoose.Schema({
     type: Date,
     required: false, 
   },
-  notes: [noteSchema], 
+  notes: [noteSchema],
+  // NEW: keep trace of parent topic if this topic was recreated/rescheduled
+  parentTopicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Topic', required: false },
+  isRepeated: { type: Boolean, default: false },
 }, { 
   timestamps: true 
 });

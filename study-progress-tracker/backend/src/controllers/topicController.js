@@ -113,7 +113,8 @@ export const updateTopicNotes = async (req, res) => {
 // @route   POST /api/subjects/:subjectId/topics
 export const createTopicForSubject = async (req, res) => {
   try {
-    const { title, dueDate } = req.body; // 👈 Destructure dueDate
+    // Accept optional parentTopicId & isRepeated fields
+    const { title, dueDate, parentTopicId, isRepeated } = req.body;
     const { subjectId } = req.params;
 
     const subject = await Subject.findById(subjectId);
@@ -130,9 +131,16 @@ export const createTopicForSubject = async (req, res) => {
       subjectId,
       userId: req.user._id,
     };
-    // 👇 Add dueDate if it exists in the request body
+    // Add dueDate if it exists in the request body
     if (dueDate) {
         topicData.dueDate = dueDate;
+    }
+
+    // Respect parentTopicId & isRepeated if provided
+    if (parentTopicId) {
+      topicData.parentTopicId = parentTopicId;
+      // Accept string 'true' or boolean true
+      topicData.isRepeated = (isRepeated === true || isRepeated === 'true');
     }
 
     const topic = new Topic(topicData);
