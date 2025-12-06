@@ -43,6 +43,17 @@ const ImageCard = ({ image, onClick }) => {
   );
 };
 
+const isTopicOutdated = (topic) => {
+  if (!topic?.dueDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const due = new Date(topic.dueDate);
+  due.setHours(0, 0, 0, 0);
+
+  return due < today && topic.status !== 'Fully Studied';
+};
+
 // --- TopicCard ---
 const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, isAnyEditing }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: topic._id });
@@ -53,7 +64,7 @@ const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, is
     transition: isOverlay ? 'none' : 'box-shadow 150ms ease, transform 150ms ease',
   };
 
-  const isOverdue = topic.dueDate && new Date(topic.dueDate) < new Date() && topic.status !== 'Fully Studied';
+const isOverdue = topic.dueDate && new Date(topic.dueDate) < new Date() && topic.status !== 'Fully Studied';
 
   return (
     <div
@@ -79,7 +90,7 @@ const TopicCard = ({ topic, onEditClick, onNotesClick, isDragging, isOverlay, is
           </div>
           {topic.dueDate && (
             <p className={`text-xs mt-1 font-medium ${isOverdue ? 'text-red-600 dark:text-red-300' : 'text-slate-500 dark:text-slate-400'}`}>
-              Due: {new Date(topic.dueDate).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+              Due: {new Date(topic.dueDate).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               {isOverdue && " (Overdue)"}
             </p>
           )}
@@ -205,7 +216,7 @@ const StudyBoardPage = () => {
   // Helper: start-of-day for a date
   const startOfDay = (d) => {
     const x = new Date(d);
-    x.setHours(0,0,0,0);
+    x.setHours(0, 0, 0, 0);
     return x;
   };
 
@@ -273,7 +284,7 @@ const StudyBoardPage = () => {
     });
     if (candidates.length === 0) return [];
     // choose the one with latest dueDate among matches (A: choose latest dueDate)
-    candidates.sort((a,b) => new Date(b.dueDate) - new Date(a.dueDate));
+    candidates.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate));
     return candidates;
   };
 
@@ -353,7 +364,7 @@ const StudyBoardPage = () => {
           <Link to="/subjects" className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold py-2 px-4 rounded-lg inline-flex items-center gap-2 transition-colors">
             ← Back to Subjects
           </Link>
-          <div className="w-full sm:w-auto"><Timer onSessionComplete={() => {}} /></div>
+          <div className="w-full sm:w-auto"><Timer onSessionComplete={() => { }} /></div>
         </header>
 
         <h1 className="text-4xl font-bold tracking-tight text-slate-800 dark:text-slate-100 mb-6">
@@ -419,7 +430,7 @@ const StudyBoardPage = () => {
             ))}
           </div>
 
-          <TopicEditorModal isOpen={isModalOpen} onRequestClose={closeModal} topic={editingTopic} onTopicUpdate={fetchAllData} />
+          <TopicEditorModal isOpen={isModalOpen} onRequestClose={closeModal} topic={editingTopic} isOutdated={isTopicOutdated(editingTopic)} onTopicUpdate={fetchAllData} />
           <NotesModal isOpen={isNotesModalOpen} onRequestClose={closeNotesModal} topic={editingTopic} onUpdate={fetchAllData} />
           <ImageUploadModal isOpen={isUploadModalOpen} onRequestClose={() => setIsUploadModalOpen(false)} subjectId={subjectId} onUploadComplete={fetchAllData} />
           <ImageViewerModal isOpen={isViewerOpen} onRequestClose={closeImageViewer} image={viewingImage} onUpdate={fetchAllData} subjectId={subjectId} />
@@ -435,7 +446,7 @@ const StudyBoardPage = () => {
             </div>
             {activeTopic.dueDate && (
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Due: {new Date(activeTopic.dueDate).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                Due: {new Date(activeTopic.dueDate).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
           </div>

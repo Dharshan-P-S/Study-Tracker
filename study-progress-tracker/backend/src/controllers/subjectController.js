@@ -2,13 +2,9 @@ import Subject from '../models/Subject.js';
 import Topic from '../models/Topic.js';
 import Image from '../models/Image.js';
 import StudySession from '../models/StudySession.js'; 
-import { v2 as cloudinary } from 'cloudinary';
+// Removed Cloudinary import
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Removed Cloudinary configuration
 
 // @desc    Create a new subject
 // @route   POST /api/subjects
@@ -46,11 +42,11 @@ export const getSubjects = async (req, res) => {
 };
 
 // @desc    Get single subject by ID
-// @route   GET /api/subjects/:subjectId
+// @route   GET /api/subjects/:id
 export const getSubjectById = async (req, res) => {
   try {
-    // Uses req.params.subjectId
-    const subject = await Subject.findOne({ _id: req.params.subjectId, userId: req.user._id });
+    // Matches route /:id
+    const subject = await Subject.findOne({ _id: req.params.id, userId: req.user._id });
     if (subject) {
       res.json(subject);
     } else {
@@ -61,13 +57,13 @@ export const getSubjectById = async (req, res) => {
   }
 };
 
-// @desc    Update a subject (Rename)
-// @route   PUT /api/subjects/:subjectId
+// @desc    Update a subject
+// @route   PUT /api/subjects/:id
 export const updateSubject = async (req, res) => {
   try {
     const { name } = req.body;
-    // 👇 CHANGED: use subjectId to match route
-    const subject = await Subject.findOne({ _id: req.params.subjectId, userId: req.user._id });
+    // Matches route /:id
+    const subject = await Subject.findOne({ _id: req.params.id, userId: req.user._id });
 
     if (subject) {
       subject.name = name || subject.name;
@@ -77,26 +73,21 @@ export const updateSubject = async (req, res) => {
       res.status(404).json({ message: 'Subject not found' });
     }
   } catch (error) {
-    console.error("Error updating subject:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
 // @desc    Delete a subject and ALL associated data
-// @route   DELETE /api/subjects/:subjectId
+// @route   DELETE /api/subjects/:id
 export const deleteSubject = async (req, res) => {
   try {
-    // 👇 CHANGED: use subjectId to match route
-    const subject = await Subject.findOne({ _id: req.params.subjectId, userId: req.user._id });
+    // Matches route /:id
+    const subject = await Subject.findOne({ _id: req.params.id, userId: req.user._id });
 
     if (subject) {
       // 1. CLEANUP IMAGES
-      const images = await Image.find({ subjectId: subject._id });
-      for (const img of images) {
-        if (img.publicId) {
-          await cloudinary.uploader.destroy(img.publicId);
-        }
-      }
+      // Since images are stored in MongoDB as Base64, we just delete the documents.
+      // No Cloudinary calls needed here.
       await Image.deleteMany({ subjectId: subject._id });
 
       // 2. CLEANUP TOPICS

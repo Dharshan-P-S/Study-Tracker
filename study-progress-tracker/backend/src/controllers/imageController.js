@@ -1,13 +1,11 @@
 import Image from '../models/Image.js';
 import Subject from '../models/Subject.js';
-import { v2 as cloudinary } from 'cloudinary';
 
-// Configure Cloudinary (make sure credentials are in your .env)
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Helper to convert buffer to base64 data URI
+const bufferToDataURI = (buffer, mimetype) => {
+  const b64 = Buffer.from(buffer).toString('base64');
+  return `data:${mimetype};base64,${b64}`;
+};
 
 // @desc    Upload a new image for a subject
 // @route   POST /api/subjects/:subjectId/images
@@ -20,18 +18,18 @@ export const uploadImage = async (req, res) => {
       return res.status(400).json({ message: 'Please upload a file' });
     }
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'study-app-images',
-    });
+    // 👇 CHANGED: Convert file buffer to Base64 string
+    const base64Image = bufferToDataURI(req.file.buffer, req.file.mimetype);
 
     const imageData = {
       userId: req.user._id,
       subjectId,
       description,
-      imageUrl: result.secure_url,
-      publicId: result.public_id,
+      imageUrl: base64Image, // Store Base64 string directly
+      // publicId removed
       status: 'To Study',
     };
+    
     if (dueDate) {
         imageData.dueDate = dueDate;
     }
@@ -56,9 +54,8 @@ export const getImagesForSubject = async (req, res) => {
   }
 };
 
-// @desc    Update an image (description or status)
+// @desc    Update an image (description, status, annotations, dueDate)
 // @route   PUT /api/images/:imageId
-
 export const updateImage = async (req, res) => {
   try {
     const { description, status, annotations, dueDate } = req.body; 
@@ -75,12 +72,13 @@ export const updateImage = async (req, res) => {
       image.annotations = annotations;
     }
 
+    // Update or remove dueDate
     image.dueDate = (dueDate === null || dueDate === '') ? undefined : dueDate; 
 
     const updatedImage = await image.save();
     res.json(updatedImage);
   } catch (error) {
-    console.error("Error updating image:", error); // Added logging
+    console.error("Error updating image:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -94,8 +92,7 @@ export const deleteImage = async (req, res) => {
       return res.status(404).json({ message: 'Image not found' });
     }
 
-    // Delete from Cloudinary
-    await cloudinary.uploader.destroy(image.publicId);
+    // 👇 CHANGED: Removed Cloudinary delete call
     
     // Delete from database
     await image.deleteOne();

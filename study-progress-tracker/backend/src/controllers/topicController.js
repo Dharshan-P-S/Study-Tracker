@@ -1,61 +1,47 @@
 import Topic from '../models/Topic.js';
 import Subject from '../models/Subject.js';
-import dotenv from 'dotenv';
-dotenv.config();
-import { v2 as cloudinary } from 'cloudinary';
 
-// Configure Cloudinary at the top
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Helper to convert buffer to base64 data URI
+const bufferToDataURI = (buffer, mimetype) => {
+  const b64 = Buffer.from(buffer).toString('base64');
+  return `data:${mimetype};base64,${b64}`;
+};
 
 // @desc    Update a topic
 // @route   PUT /api/topics/:topicId
 export const updateTopic = async (req, res) => {
   try {
-    // 👇 Destructure 'dueDate'
-    const { title, text, status, revisionDate, removeImage, notes, dueDate } = req.body; 
+    const { title, text, status, revisionDate, removeImage, notes, dueDate } = req.body;
     const topic = await Topic.findOne({ _id: req.params.topicId, userId: req.user._id });
 
     if (!topic) {
       return res.status(404).json({ message: 'Topic not found' });
     }
     
-    // Handle file deletion (No changes needed here)
-    if (removeImage === 'true' && topic.imageUrl) {
-      const publicId = topic.imageUrl.split('/').pop().split('.')[0];
-      await cloudinary.uploader.destroy(`study-app-topics/${publicId}`);
+    // Handle file deletion (Base64 version: just set to undefined)
+    if (removeImage === 'true') {
       topic.imageUrl = undefined;
     } 
-    // Handle NEW file upload (No changes needed here)
+    // Handle NEW file upload (Base64 version)
     else if (req.file) {
-      if (topic.imageUrl) {
-        const publicId = topic.imageUrl.split('/').pop().split('.')[0];
-        await cloudinary.uploader.destroy(`study-app-topics/${publicId}`);
-      }
-      const result = await cloudinary.uploader.upload(req.file.path, { folder: 'study-app-topics', resource_type: 'image' });
-      topic.imageUrl = result.secure_url;
+      topic.imageUrl = bufferToDataURI(req.file.buffer, req.file.mimetype);
     }
     
-    // Update other fields (No changes needed here)
+    // Update other fields
     topic.title = title || topic.title;
-    topic.text = text !== undefined ? text : topic.text; // Retaining your simplification for 'text'
+    topic.text = text !== undefined ? text : topic.text; 
     topic.status = status || topic.status;
     topic.revisionDate = revisionDate || topic.revisionDate;
 
-    // 👇 Add logic to update or remove dueDate
-    topic.dueDate = dueDate ? dueDate : undefined;
+    // Update or remove dueDate
+    topic.dueDate = (dueDate === '' || dueDate === null) ? undefined : dueDate;
 
-    // Note update logic (No changes needed here)
+    // Note update logic
     if (notes) {
       try {
         topic.notes = JSON.parse(notes);
       } catch (parseError) {
           console.warn("Received notes but failed to parse:", parseError);
-          // Decide if you want to return an error or ignore invalid notes
-          // return res.status(400).json({ message: 'Invalid notes format.' });
       }
     }
 
@@ -89,14 +75,14 @@ export const updateTopicNotes = async (req, res) => {
       }
     }
 
+    // Handle Note Image Upload (Base64 version)
     if (imageFile) {
-      const result = await cloudinary.uploader.upload(imageFile.path, {
-        folder: 'study-app-topic-notes', 
-      });
+      const base64Image = bufferToDataURI(imageFile.buffer, imageFile.mimetype);
+      
       parsedNotes.push({
         noteType: 'Image',
-        imageUrl: result.secure_url,
-        publicId: result.public_id,
+        imageUrl: base64Image,
+        // publicId removed
       });
     }
 
@@ -113,7 +99,6 @@ export const updateTopicNotes = async (req, res) => {
 // @route   POST /api/subjects/:subjectId/topics
 export const createTopicForSubject = async (req, res) => {
   try {
-    // Accept optional parentTopicId & isRepeated fields
     const { title, dueDate, parentTopicId, isRepeated } = req.body;
     const { subjectId } = req.params;
 
@@ -125,29 +110,30 @@ export const createTopicForSubject = async (req, res) => {
       return res.status(400).json({ message: 'Topic title is required' });
     }
 
-    // Prepare topic data object
     const topicData = {
       title,
       subjectId,
       userId: req.user._id,
     };
-    // Add dueDate if it exists in the request body
     if (dueDate) {
         topicData.dueDate = dueDate;
     }
 
-    // Respect parentTopicId & isRepeated if provided
+    // Respect parentTopicId & isRepeated if provided (for rescheduling)
     if (parentTopicId) {
       topicData.parentTopicId = parentTopicId;
-      // Accept string 'true' or boolean true
+      topicData.isRepeated = (isRepeated === true || isRepeated === 'true');
+    } else if (isRepeated) {
+      // Fallback if parent ID isn't sent but flag is
       topicData.isRepeated = (isRepeated === true || isRepeated === 'true');
     }
+
 
     const topic = new Topic(topicData);
     const createdTopic = await topic.save();
     res.status(201).json(createdTopic);
   } catch (error) {
-    console.error("Error creating topic:", error); // Added error logging
+    console.error("Error creating topic:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -160,7 +146,7 @@ export const getTopicsForSubject = async (req, res) => {
     const topics = await Topic.find({ subjectId: subjectId, userId: req.user._id });
     res.status(200).json(topics);
   } catch (error) {
-    console.error("Error getting topics for subject:", error); // Added error logging
+    console.error("Error getting topics for subject:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -176,7 +162,7 @@ export const getTopicById = async (req, res) => {
       res.status(404).json({ message: 'Topic not found' });
     }
   } catch (error) {
-    console.error("Error getting topic by ID:", error); // Added error logging
+    console.error("Error getting topic by ID:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -186,18 +172,17 @@ export const getTopicById = async (req, res) => {
 // @route   DELETE /api/topics/:topicId
 export const deleteTopic = async (req, res) => {
     try {
-      const topic = await Topic.findOne({ _id: req.params.topicId, userId: req.user._id });
+        const topic = await Topic.findOne({ _id: req.params.topicId, userId: req.user._id });
 
-      if (topic) {
-        // Optional: Add logic here to delete associated Cloudinary images if needed
-        await topic.deleteOne();
-        res.json({ message: 'Topic removed' });
-      } else {
-        res.status(404).json({ message: 'Topic not found' });
-      }
+        if (topic) {
+            await topic.deleteOne();
+            res.json({ message: 'Topic removed' });
+        } else {
+            res.status(404).json({ message: 'Topic not found' });
+        }
     } catch (error) {
-      console.error("Error deleting topic:", error); // Added error logging
-      res.status(500).json({ message: 'Server Error' });
+        console.error("Error deleting topic:", error);
+        res.status(500).json({ message: 'Server Error' });
     }
 };
 
@@ -216,7 +201,7 @@ export const updateTopicStatus = async (req, res) => {
       res.status(404).json({ message: 'Topic not found' });
     }
   } catch (error) {
-    console.error("Error updating topic status:", error); // Added error logging
+    console.error("Error updating topic status:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 };

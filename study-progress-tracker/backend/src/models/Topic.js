@@ -13,13 +13,11 @@ const noteSchema = new mongoose.Schema({
   },
   // Fields for Image notes
   imageUrl: {
-    type: String,
+    type: String, // This will store the Base64 string
     required: function() { return this.noteType === 'Image'; }
   },
-  publicId: { // For Cloudinary deletion
-    type: String,
-    required: function() { return this.noteType === 'Image'; }
-  },
+  // Removed publicId (Not needed for local MongoDB storage)
+
   // Fields for Link notes
   title: {
     type: String,
@@ -35,7 +33,7 @@ const noteSchema = new mongoose.Schema({
       enum: ['YouTube', 'Local File'],
       required: function() { return this.noteType === 'Link'; }
   }
-}, { _id: false });
+});
 
 const topicSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -52,7 +50,7 @@ const topicSchema = new mongoose.Schema({
     required: false, 
   },
   notes: [noteSchema],
-  // NEW: keep trace of parent topic if this topic was recreated/rescheduled
+  // Track parent topic for rescheduled items
   parentTopicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Topic', required: false },
   isRepeated: { type: Boolean, default: false },
 }, { 
