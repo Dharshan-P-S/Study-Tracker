@@ -192,7 +192,7 @@ const StudyBoardPage = () => {
     if (originalTopic && originalTopic.status !== newStatus) {
       const validStatuses = ['To Study', 'Partially Studied', 'Fully Studied', 'To Be Revised'];
       if (!validStatuses.includes(newStatus)) return;
-      setTopics(prev => prev.map(t => (t._1d === topicId ? { ...t, status: newStatus } : t)));
+      setTopics(prev => prev.map(t => (t._id === topicId ? { ...t, status: newStatus } : t)));
       try {
         await updateTopicStatus(topicId, newStatus);
       } catch (error) {
